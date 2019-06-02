@@ -122,3 +122,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# ignore some files for supdate
+/instances/
+/www/
+requests.sqlite
