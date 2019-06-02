@@ -330,7 +330,7 @@ def cli(ctx: Context,
     )
 
     if use_requests_cache:
-        requests_cache.install_cache("requests")
+        requests_cache.install_cache(".supdate")
 
 
 if TYPE_CHECKING:
