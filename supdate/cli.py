@@ -1,4 +1,8 @@
+import compileall
 import re
+import shutil
+import tempfile
+import zipapp
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -328,3 +332,36 @@ def cli_package(supdate: SUpdate, name: str, forge_version: Optional[str], force
 @click.pass_obj
 def cli_update(supdate: SUpdate):
     supdate.cmd_update()
+
+
+@cli.command("build-pyz", hidden=not __file__.endswith('.py'))
+def cli_build_pyz():
+    this = Path(__file__)
+    if this.suffix != ".py":
+        raise Exception("can't packaging because already packaged")
+
+    folder = this.parent
+    target_folder = Path(tempfile.mkdtemp())
+
+    shutil.copytree(folder, target_folder / folder.name)
+    (target_folder / folder.name / "__main__.py").rename(target_folder / "__main__.py")
+
+    compileall.compile_dir(target_folder, legacy=True)
+
+    def filter_func(file: Path):
+        if "__pycache__" in file.parts:
+            return False
+
+        return file.suffix == ".pyc"
+
+    pyz_path = folder.with_suffix(".pyz")
+
+    zipapp.create_archive(
+        target_folder,
+        pyz_path,
+        "/usr/bin/env python3.7",
+        filter=filter_func,
+    )
+
+    shutil.rmtree(target_folder)
+    print(pyz_path)
