@@ -1,6 +1,7 @@
 import json
 import subprocess
 import zipfile
+from dataclasses import dataclass
 from pathlib import Path
 
 import requests
@@ -9,12 +10,16 @@ from .profile import Profile
 from .vanilla import fetch_vanilla_profile
 
 
+@dataclass
 class ForgeUniversal:
-    def __init__(self, vanilla_version: str, forge_version: str, folder: Path):
-        self.vanilla_version = vanilla_version
-        self.forge_version = forge_version
-        self.folder = folder
-        self.universal = folder / f"forge-{vanilla_version}-{forge_version}-universal.jar"
+    vanilla_version: str
+    forge_version: str
+    folder: Path
+    universal: Path = None
+
+    def __post_init__(self):
+        if self.universal is None:
+            self.universal = self.folder / f"forge-{self.vanilla_version}-{self.forge_version}-universal.jar"
 
     def forge_profile(self) -> Profile:
         with zipfile.ZipFile(self.universal) as zf:
@@ -37,21 +42,37 @@ class ForgeUniversal:
         return profile
 
 
+@dataclass
 class ForgeInstaller(ForgeUniversal):
-    def __init__(self, vanilla_version: str, forge_version: str, folder: Path):
-        super().__init__(vanilla_version, forge_version, folder)
-        self.installer = folder / f"forge-{vanilla_version}-{forge_version}-installer.jar"
+    installer: Path = None
 
-    def download(self):
-        res = requests.get(
+    def __post_init__(self):
+        super().__post_init__()
+
+        if self.installer is None:
+            self.installer = self.folder / self.installer_name
+
+    @property
+    def installer_url(self):
+        return (
             f"https://files.minecraftforge.net/maven/"
             f"net/minecraftforge/forge/"
             f"{self.vanilla_version}-{self.forge_version}/"
-            f"{self.installer.name}",
-            stream=True,
+            f"{self.installer_name}"
         )
 
+    @property
+    def installer_name(self):
+        return self.get_installer_name(self.vanilla_version, self.forge_version)
+
+    @staticmethod
+    def get_installer_name(vanilla_version: str, forge_version: str):
+        return f"forge-{vanilla_version}-{forge_version}-installer.jar"
+
+    def download(self):
+        res = requests.get(self.installer_url, stream=True)
         res.raise_for_status()
+
         with self.installer.open('wb') as fp:
             for chunk in res:
                 fp.write(chunk)
