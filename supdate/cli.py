@@ -1,4 +1,5 @@
 import compileall
+import os
 import re
 import shutil
 import tempfile
@@ -293,6 +294,9 @@ class SUpdate:
 @click.option("--use-requests-cache/--no-requests-cache",
               default=True,
               help="Use requests-cache")
+@click.option("--use-cwd/--no-cwd",
+              default=False,
+              help="False; Use cwd when enabled")
 @click.pass_context
 def cli(ctx: Context,
         instances: Path,
@@ -301,7 +305,21 @@ def cli(ctx: Context,
         libraries: Path,
         libraries_url: str,
         packages_url: str,
-        use_requests_cache: bool):
+        use_requests_cache: bool,
+        use_cwd: bool):
+    if not use_cwd:
+        file = Path(__file__)
+        if file.suffix == ".pyc":
+            dir = file.parents[2]
+        elif file.suffix == ".py":
+            dir = file.parents[1]
+        else:
+            raise NotImplementedError(file.suffix)
+
+        os.chdir(dir)
+
+    print("cwd =", Path.cwd())
+
     ctx.obj = SUpdate(
         instances_path=instances.absolute(),
         forge_path=forge.absolute(),
