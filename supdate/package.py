@@ -8,7 +8,7 @@ from urllib.parse import urljoin
 
 from .profile import Profile
 from .typed import Namespace
-from .utils import sha256_hexdigest
+from .utils import sha256_hexdigest, is_same_file
 
 
 @dataclass
@@ -48,3 +48,45 @@ class Package(Profile):
 
         obj["files"] = files
         return obj
+
+
+class PackageBuilder:
+    def __init__(self, package: Package, instance_folder: Path, package_folder: Path, package_url: str):
+        self.package = package
+        self.instance_folder = instance_folder
+        self.package_folder = package_folder
+        self.package_url = package_url
+        self.files: Dict[Path, Any] = {}
+
+    def scan(self, pattern: str, folder: Optional[Path] = None):
+        if folder is None:
+            folder = self.instance_folder
+
+        for file in folder.glob(pattern):
+            if file.is_file():
+                yield file, file.relative_to(folder)
+
+    def include(self, pattern: str, folder: Optional[Path] = None):
+        for file, path in self.scan(pattern, folder=folder):
+            self.files[path] = file
+
+    def exclude(self, pattern: str, folder: Optional[Path] = None):
+        for _, path in self.scan(pattern, folder=folder):
+            self.files.pop(path, None)
+
+    def build(self):
+        # TODO: delete mismatch
+        for path, file in self.files.items():
+            target_file = self.package_folder / path
+            target_file.parent.mkdir(parents=True, exist_ok=True)
+
+            if is_same_file(file, target_file):
+                shutil.copyfile(str(file), str(target_file))
+
+            file_stat = file.stat()
+            self.package.files.append(PackageFile(
+                size=file_stat.st_size,
+                sha1=sha256_hexdigest(file),
+                path=path.as_posix(),
+                url=urljoin(self.package_url, path.as_posix())
+            ))
