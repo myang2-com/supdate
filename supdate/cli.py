@@ -55,14 +55,17 @@ class SUpdate:
 
         if forge_path is None:
             forge_path = self.forge_path / version
+            forge_path.mkdir(parents=True, exist_ok=True)
 
         forge_profile_path = forge_path / f"forge-{version}.json"
-
-        assert forge_path.exists(), forge_path
-
         return vanilla_version, forge_version, forge_path, forge_profile_path
 
-    def cmd_forge(self, version: str, *, forge_path: Optional[Path] = None) -> Path:
+    def cmd_forge(
+            self,
+            version: str,
+            *,
+            forge_path: Optional[Path] = None
+    ) -> Path:
         vanilla_version, forge_version, forge_path, forge_profile_path = self.prepare_forge(version, forge_path)
 
         forge_installer = ForgeInstaller(vanilla_version, forge_version, forge_path)
@@ -83,6 +86,9 @@ class SUpdate:
             forge_path: Optional[Path] = None,
     ) -> bool:
         _, _, forge_path, forge_profile_path = self.prepare_forge(version, forge_path)
+        if not forge_path.exists():
+            return False
+
         forge_profile = Profile.read_from_path(forge_profile_path)
         libraries = LibrariesBuilder(forge_profile, forge_path)
         return libraries.check_target(self.libraries_path)
