@@ -4,7 +4,7 @@ from typing import Dict
 
 from .package import Package
 from .typed import Namespace
-from .utils import sha256_hexdigest
+from .utils import sha1_hexdigest
 
 
 @dataclass
@@ -28,7 +28,7 @@ class IndexPackage(Namespace):
             time=package.time,
             url=package_url,
             path="modpack.json",
-            sha1=sha256_hexdigest(modpack_path),
+            sha1=sha1_hexdigest(modpack_path),
             size=st.st_size,
         )
 

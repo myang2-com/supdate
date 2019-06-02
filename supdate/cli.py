@@ -14,7 +14,7 @@ from .index import IndexPackageManifest, Launcher, IndexPackage
 from .libraries import LibrariesBuilder
 from .package import Package, PackageBuilder
 from .profile import Profile
-from .utils import sha256_hexdigest
+from .utils import sha1_hexdigest
 
 DOMAIN = "myang2.com"
 
@@ -163,7 +163,7 @@ class SUpdate:
             package = Package.read_from_path(modpack_path)
 
             prev_index_package = prev_manifest.packages.get(package.id) if prev_manifest else None
-            if prev_index_package and prev_index_package.sha1 == sha256_hexdigest(modpack_path):
+            if prev_index_package and prev_index_package.sha1 == sha1_hexdigest(modpack_path):
                 index_package = prev_index_package
             else:
                 package.version = next_version

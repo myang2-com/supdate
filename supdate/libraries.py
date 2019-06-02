@@ -3,7 +3,7 @@ from pathlib import Path
 from urllib.parse import urlparse, ParseResult, urljoin
 
 from .profile import Profile, Library, LibraryArtifactDownload, LibraryDownloads
-from .utils import sha256_hexdigest
+from .utils import sha1_hexdigest
 
 
 def is_forge_universal(library: Library):
@@ -42,7 +42,7 @@ class LibrariesBuilder:
 
                 download = LibraryArtifactDownload(
                     size=lib_stat.st_size,
-                    sha1=sha256_hexdigest(lib),
+                    sha1=sha1_hexdigest(lib),
                     path=lib.relative_to(libraries_folder).as_posix(),
                     url=urljoin(url, lib.relative_to(libraries_folder).as_posix())
                 )

@@ -8,7 +8,7 @@ from urllib.parse import urljoin
 
 from .profile import Profile
 from .typed import Namespace
-from .utils import sha256_hexdigest, is_same_file
+from .utils import sha1_hexdigest, is_same_file
 
 
 @dataclass
@@ -86,7 +86,7 @@ class PackageBuilder:
             file_stat = file.stat()
             self.package.files.append(PackageFile(
                 size=file_stat.st_size,
-                sha1=sha256_hexdigest(file),
+                sha1=sha1_hexdigest(file),
                 path=path.as_posix(),
                 url=urljoin(self.package_url, path.as_posix())
             ))
