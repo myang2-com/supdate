@@ -56,3 +56,15 @@ class LibrariesBuilder:
 
                 assert not library.downloads
                 library.downloads = LibraryDownloads(artifact=download)
+
+    def check_target(self, target_libraries_folder: Path) -> bool:
+        success = True
+
+        for library in self.profile.libraries:
+            if library.clientreq or library.serverreq:
+                lib = target_libraries_folder / library.path
+                if not lib.exists():
+                    success = False
+                    print(lib)
+
+        return success
