@@ -18,6 +18,7 @@ class Profile(Namespace):
     minecraftArguments: str
     mainClass: str
     logging: dict
+    minimumLauncherVersion: int = None
     libraries: List[Library] = field(default_factory=list)
     jar: Optional[str] = None
     inheritsFrom: Optional[str] = None
