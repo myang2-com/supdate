@@ -3,6 +3,11 @@ from pathlib import Path
 
 
 def sha256_hexdigest(file: Path):
+    if file.exists():
+        raise FileNotFoundError(str(file))
+    elif not file.is_file():
+        raise FileExistsError((str(file)), "is not file")
+
     return _sha256(file.read_bytes()).hexdigest()
 
 
