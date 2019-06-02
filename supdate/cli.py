@@ -263,13 +263,13 @@ class SUpdate:
               type=ClickPath())
 @click.option("--packages",
               metavar="PATH",
-              default="./www/packages/",
-              help="packages/",
+              default="./web/packages/",
+              help="web/packages/",
               type=ClickPath())
 @click.option("--libraries",
               metavar="PATH",
-              default="./www/libraries/",
-              help="libraries/",
+              default="./web/libraries/",
+              help="web/libraries/",
               type=ClickPath())
 @click.option("--packages-url",
               metavar="URL",
