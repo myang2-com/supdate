@@ -138,6 +138,7 @@ class SUpdate:
         package_builder = PackageBuilder(package, instance_path, package_path, package_url)
         package_builder.include("mods/**/*")
         package_builder.include("config/**/*")
+        package_builder.include("scripts/**/*")
         package_builder.exclude("config/Chikachi/**/*")
         package_builder.build()
 
