@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 from collections import MutableMapping
 from dataclasses import dataclass, fields, Field, MISSING, is_dataclass
+from pathlib import Path
 from typing import Type, Union, List, Optional, get_type_hints, Dict
 
 from typing_inspect import is_optional_type, get_origin, get_args
@@ -114,6 +116,17 @@ class Namespace(MutableMapping):
             result[key] = visit(value)
 
         return result
+
+    def write_to_path(self, path: Path) -> str:
+        obj = self.to_json()
+        s = json.dumps(obj, indent=4, sort_keys=False)
+        path.write_text(s, encoding='utf-8')
+
+    @classmethod
+    def read_from_path(cls, path: Path):
+        s = path.read_text(encoding='utf-8')
+        obj = json.loads(s)
+        return cls.from_json(obj)
 
     def __repr__(self):
         names = set()
