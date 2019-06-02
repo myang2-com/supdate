@@ -80,7 +80,7 @@ class PackageBuilder:
             target_file = self.package_folder / path
             target_file.parent.mkdir(parents=True, exist_ok=True)
 
-            if is_same_file(file, target_file):
+            if not is_same_file(file, target_file):
                 shutil.copyfile(str(file), str(target_file))
 
             file_stat = file.stat()
