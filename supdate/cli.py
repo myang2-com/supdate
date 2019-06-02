@@ -141,7 +141,7 @@ class SUpdate:
 
         return modpack_path
 
-    def cmd_update(self):
+    def cmd_update(self) -> Path:
         index_path = self.index_path
 
         prev_manifest = self.get_latest_manifest()
@@ -183,6 +183,7 @@ class SUpdate:
             manifest.packages[package.id] = index_package
 
         manifest.write_to_path(index_path)
+        return index_path
 
     def get_latest_manifest(self) -> IndexPackageManifest:
         if self.index_path.exists():
@@ -331,7 +332,7 @@ def cli_package(supdate: SUpdate, name: str, forge_version: Optional[str], force
 @cli.command("update", help="update index from web/packages/")
 @click.pass_obj
 def cli_update(supdate: SUpdate):
-    supdate.cmd_update()
+    print(supdate.cmd_update())
 
 
 @cli.command("build-pyz", hidden=not __file__.endswith('.py'))
