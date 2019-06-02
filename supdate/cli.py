@@ -312,7 +312,7 @@ if TYPE_CHECKING:
     cli: Cli
 
 
-@cli.command("forge", help="internal command; pre-install forge")
+@cli.command("forge", help="internal command; pre-install forge", hidden=True)
 @click.argument("version")
 @click.pass_obj
 def cli_forge(supdate: SUpdate, version: str):
