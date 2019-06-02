@@ -15,7 +15,7 @@ class LibrariesBuilder:
         self.profile = profile
         self.folder = folder
 
-    def check(self):
+    def check_source(self):
         for library in self.profile.libraries:
             if library.clientreq or library.serverreq:
                 lib = self.folder / "libraries" / library.path
@@ -26,7 +26,7 @@ class LibrariesBuilder:
                 assert is_forge_universal(library), library
 
     def build(self, url: str, target_libraries_folder: Path, *, copy: bool):
-        self.check()
+        self.check_source()
 
         up: ParseResult = urlparse(url)
         if up.scheme not in ("http", "https"):
