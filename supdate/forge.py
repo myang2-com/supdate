@@ -80,6 +80,6 @@ class ForgeInstaller(ForgeUniversal):
     def install(self, *, auto_download=True):
         if auto_download and not self.installer.exists():
             self.download()
-        
-        subprocess.check_call(["java", "-jar", str(self.installer), "--installServer"], cwd=str(self.folder))
+
+        subprocess.check_call(["java", "-jar", str(self.installer.absolute()), "--installServer"], cwd=str(self.folder))
         assert self.universal.exists()
