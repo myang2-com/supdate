@@ -312,14 +312,14 @@ if TYPE_CHECKING:
     cli: Cli
 
 
-@cli.command("forge")
+@cli.command("forge", help="internal command; pre-install forge")
 @click.argument("version")
 @click.pass_obj
 def cli_forge(supdate: SUpdate, version: str):
     print(supdate.cmd_forge(version))
 
 
-@cli.command("package")
+@cli.command("package", help="packaging modpack from instances/")
 @click.argument("name")
 @click.option("--forge-version")
 @click.option("--force-update-forge/--no-update-forge", default=None)
@@ -328,7 +328,7 @@ def cli_package(supdate: SUpdate, name: str, forge_version: Optional[str], force
     print(supdate.cmd_package(name, forge_version, force_update_forge))
 
 
-@cli.command("update")
+@cli.command("update", help="update index from web/packages/")
 @click.pass_obj
 def cli_update(supdate: SUpdate):
     supdate.cmd_update()
