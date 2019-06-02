@@ -28,6 +28,7 @@ class PackageConfig:
 @dataclass(repr=False)
 class Package(Profile):
     name: Optional[str] = None
+    version: Optional[str] = None
     files: List[PackageFile] = field(default_factory=list)
 
     @classmethod
