@@ -2,6 +2,7 @@ import shutil
 from pathlib import Path
 from urllib.parse import urlparse, ParseResult, urljoin
 
+from .forge import ForgeUniversal
 from .profile import Profile, Library, LibraryArtifactDownload, LibraryDownloads
 from .utils import sha1_hexdigest
 
@@ -35,27 +36,36 @@ class LibrariesBuilder:
         libraries_folder = self.folder / "libraries"
         for library in self.profile.libraries:
             if library.clientreq or library.serverreq:
-                lib = libraries_folder / library.path
-                assert lib.exists(), lib
+                file = libraries_folder / library.path
+                path = file.relative_to(libraries_folder)
+            elif is_forge_universal(library):
+                # TODO: universal ref object?
+                vanilla_version, forge_version = library.version.split('-')
+                file = self.folder / ForgeUniversal.build_universal_filename(vanilla_version, forge_version)
+                path = Path(library.path)
+            else:
+                continue
 
-                lib_stat = lib.stat()
+            assert file.exists(), file
 
-                download = LibraryArtifactDownload(
-                    size=lib_stat.st_size,
-                    sha1=sha1_hexdigest(lib),
-                    path=lib.relative_to(libraries_folder).as_posix(),
-                    url=urljoin(url, lib.relative_to(libraries_folder).as_posix())
-                )
+            lib_stat = file.stat()
 
-                if copy:
-                    target = target_libraries_folder / lib.relative_to(libraries_folder)
-                    target.parent.mkdir(parents=True, exist_ok=True)
+            download = LibraryArtifactDownload(
+                size=lib_stat.st_size,
+                sha1=sha1_hexdigest(file),
+                path=path.as_posix(),
+                url=urljoin(url, path.as_posix())
+            )
 
-                    if not target.exists():
-                        shutil.copyfile(str(lib.absolute()), str(target.absolute()))
+            if copy:
+                target = target_libraries_folder / path
+                target.parent.mkdir(parents=True, exist_ok=True)
 
-                assert not library.downloads
-                library.downloads = LibraryDownloads(artifact=download)
+                if not target.exists():
+                    shutil.copyfile(str(file.absolute()), str(target.absolute()))
+
+            assert not library.downloads
+            library.downloads = LibraryDownloads(artifact=download)
 
     def check_target(self, target_libraries_folder: Path) -> bool:
         success = True

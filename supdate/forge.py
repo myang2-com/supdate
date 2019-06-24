@@ -19,7 +19,11 @@ class ForgeUniversal:
 
     def __post_init__(self):
         if self.universal is None:
-            self.universal = self.folder / f"forge-{self.vanilla_version}-{self.forge_version}-universal.jar"
+            self.universal = self.folder / self.build_universal_filename(self.vanilla_version, self.forge_version)
+
+    @staticmethod
+    def build_universal_filename(vanilla_version: str, forge_version: str):
+        return f"forge-{vanilla_version}-{forge_version}-universal.jar"
 
     def forge_profile(self) -> Profile:
         with zipfile.ZipFile(self.universal) as zf:
