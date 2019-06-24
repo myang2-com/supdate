@@ -126,4 +126,5 @@ dmypy.json
 # ignore some files for supdate
 /instances/
 /www/
-requests.sqlite
+/.supdate.sqlite
+/supdate.pyz
