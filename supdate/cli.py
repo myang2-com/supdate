@@ -142,6 +142,7 @@ class SUpdate:
         package_builder.exclude("config/Chikachi/**/*")
         package_builder.build()
 
+        modpack_path.parent.mkdir(exist_ok=True)
         package.write_to_path(modpack_path)
 
         if not from_cmd:
