@@ -117,7 +117,7 @@ class Namespace(MutableMapping):
 
         return result
 
-    def write_to_path(self, path: Path) -> str:
+    def write_to_path(self, path: Path):
         obj = self.to_json()
         s = json.dumps(obj, indent=4, sort_keys=False)
         path.write_text(s, encoding='utf-8')
