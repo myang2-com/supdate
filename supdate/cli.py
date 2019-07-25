@@ -105,9 +105,13 @@ class SUpdate:
         instance_path = self.instances_path / name
         package_path = self.packages_path / name
         modpack_path = package_path / "modpack.json"
+        client_path = instance_path / "client"
 
         if not instance_path.exists():
             raise FileNotFoundError(str(instance_path))
+
+        if not client_path.exists():
+            client_path.mkdir(exist_ok=True, parents=True)
 
         if forge_version is None:
             forge_version = self.find_forge_version(instance_path)
@@ -141,6 +145,10 @@ class SUpdate:
         package_builder.include("scripts/**/*")
         package_builder.exclude("config/Chikachi/**/*")
         package_builder.build()
+
+        client_builder = PackageBuilder(package, client_path, package_path, package_url)
+        client_builder.include("**/*")
+        client_builder.build()
 
         modpack_path.parent.mkdir(exist_ok=True)
         package.write_to_path(modpack_path)
