@@ -27,7 +27,21 @@ class LibrariesBuilder:
             else:
                 assert is_forge_universal(library), library
 
+    def check_all_forge_jars(self, path: Path):
+        universal_jar = path.with_stem(f"{path.stem}-universal")
+        server_jar = path.with_stem(f"{path.stem}-server")
+        client_jar = path.with_stem(f"{path.stem}-client")
+
+        if universal_jar.exists() and server_jar.exists():
+            if not client_jar.exists():
+                raise Exception(f"client jar file is missing: {client_jar}")
+
+            return True
+        else:
+            return False
+
     def build(self, url: str, target_libraries_folder: Path, *, copy: bool):
+        # 소스 체크
         self.check_source()
 
         up: ParseResult = urlparse(url)
@@ -35,45 +49,59 @@ class LibrariesBuilder:
             raise Exception(f"{up.scheme} is not supported protocol")
 
         libraries_folder = self.folder / "libraries"
-        for library in self.profile.libraries:
+        for pos, library in enumerate(self.profile.libraries[:]):
             if library.clientreq or library.serverreq:
                 file = libraries_folder / library.path
                 path = file.relative_to(libraries_folder)
             elif is_forge_universal(library):
-                # TODO: universal ref object?
-                vanilla_version, forge_version = library.version.split('-')
-                file = self.folder / ForgeUniversal.build_universal_filename(vanilla_version, forge_version)
-                if not file.exists():
-                    file = self.forge_universal.universal
-                    if not file.exists():
-                        raise Exception("I don't have any idea for find universal jar... T_T")
-
+                file = libraries_folder / library.path
                 path = Path(library.path)
+                if self.check_all_forge_jars(file):
+                    for tag in "universal", "client":
+                        sfile = file.with_stem(f"{file.stem}-{tag}")
+                        spath = path.with_stem(f"{file.stem}-{tag}")
+                        assert sfile.exists(), sfile
+
+                        download = self.build_artifact_download(sfile, spath, url)
+
+                        if copy:
+                            self.copy_library_file(sfile, spath, target_libraries_folder)
+
+                        new_library = Library(
+                            name=f"{library.name}-{tag}",
+                            downloads=LibraryDownloads(artifact=download),
+                            _dependency=library._dependency
+                        )
+                        self.profile.libraries.insert(pos + 1, new_library)
+                else:
+                    file = self.folder / self.forge_universal.universal
             else:
                 continue
 
             assert file.exists(), file
 
-            lib_stat = file.stat()
-
-            download = LibraryArtifactDownload(
-                size=lib_stat.st_size,
-                sha1=sha1_hexdigest(file),
-                path=path.as_posix(),
-                url=urljoin(url, path.as_posix())
-            )
-
-            if copy:
-                target = target_libraries_folder / path
-                target.parent.mkdir(parents=True, exist_ok=True)
-
-                if not target.exists():
-                    shutil.copyfile(str(file.absolute()), str(target.absolute()))
-
             if not is_forge_universal(library):
                 assert not library.downloads
 
+            download = self.build_artifact_download(file, path, url)
             library.downloads = LibraryDownloads(artifact=download)
+
+            if copy:
+                self.copy_library_file(file, path, target_libraries_folder)
+
+    def build_artifact_download(self, file: Path, path: Path, url):
+        return LibraryArtifactDownload(
+            size=file.stat().st_size,
+            sha1=sha1_hexdigest(file),
+            path=path.as_posix(),
+            url=urljoin(url, path.as_posix())
+        )
+
+    def copy_library_file(self, file: Path, path: Path, target_libraries_folder: Path):
+        target = target_libraries_folder / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if not target.exists():
+            shutil.copyfile(str(file.absolute()), str(target.absolute()))
 
     def check_target(self, target_libraries_folder: Path) -> bool:
         success = True
