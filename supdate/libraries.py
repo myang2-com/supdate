@@ -12,9 +12,10 @@ def is_forge_universal(library: Library):
 
 
 class LibrariesBuilder:
-    def __init__(self, profile: Profile, folder: Path):
+    def __init__(self, profile: Profile, folder: Path, forge_universal: ForgeUniversal = None):
         self.profile = profile
         self.folder = folder
+        self.forge_universal = forge_universal
 
     def check_source(self):
         for library in self.profile.libraries:
@@ -42,6 +43,11 @@ class LibrariesBuilder:
                 # TODO: universal ref object?
                 vanilla_version, forge_version = library.version.split('-')
                 file = self.folder / ForgeUniversal.build_universal_filename(vanilla_version, forge_version)
+                if not file.exists():
+                    file = self.forge_universal.universal
+                    if not file.exists():
+                        raise Exception("I don't have any idea for find universal jar... T_T")
+
                 path = Path(library.path)
             else:
                 continue
@@ -64,7 +70,9 @@ class LibrariesBuilder:
                 if not target.exists():
                     shutil.copyfile(str(file.absolute()), str(target.absolute()))
 
-            assert not library.downloads
+            if not is_forge_universal(library):
+                assert not library.downloads
+
             library.downloads = LibraryDownloads(artifact=download)
 
     def check_target(self, target_libraries_folder: Path) -> bool:

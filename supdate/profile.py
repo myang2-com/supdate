@@ -3,7 +3,7 @@ from __future__ import annotations
 import posixpath
 from dataclasses import dataclass, field
 from itertools import chain
-from typing import List, Optional, Any, NamedTuple
+from typing import List, Optional, Any, NamedTuple, Union
 
 from .typed import Namespace
 
@@ -15,9 +15,10 @@ class Profile(Namespace):
     time: str
     releaseTime: str
     type: str
-    minecraftArguments: str
     mainClass: str
     logging: dict
+    arguments: Optional[Any] = None
+    minecraftArguments: str = None
     minimumLauncherVersion: int = None
     libraries: List[Library] = field(default_factory=list)
     jar: Optional[str] = None
@@ -26,17 +27,30 @@ class Profile(Namespace):
     downloads: Optional[Any] = None
     assets: Optional[str] = None
 
+    def __post_init__(self):
+        if self.arguments is not None:
+            self.minecraftArguments = self.build_minecraft_arguments(self.arguments)
+
     def merge(self, other: Profile):
         for key, value in other.items():
             if key == "libraries":
                 self[key] = list({library.name: library
                                   for library in chain(self.libraries, other.libraries)}.values())
+            elif key == "arguments":
+                self.arguments["game"].extend(value["game"])
+            elif key == "minecraftArguments":
+                # check for minecraftArguments is builded by arguments["game"]
+                if self.arguments is not None:
+                    self.minecraftArguments += " " + value
             elif isinstance(value, list):
                 self[key].extend(value)
             elif isinstance(value, dict):
                 self[key].update(value)
             else:
                 self[key] = value
+
+    def build_minecraft_arguments(self, arguments):
+        return " ".join(arg for arg in arguments["game"] if isinstance(arg, str))
 
 
 class LibraryDependency(NamedTuple):
