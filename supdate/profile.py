@@ -3,9 +3,16 @@ from __future__ import annotations
 import posixpath
 from dataclasses import dataclass, field
 from itertools import chain
-from typing import List, Optional, Any, NamedTuple
+from pathlib import Path
+from typing import Iterator, List, Optional, Any, NamedTuple, Union
 
 from .typed import Namespace
+
+
+@dataclass(repr=False)
+class InstallProfile(Namespace):
+    version: str = None
+    data: dict = None
 
 
 @dataclass(repr=False)
@@ -15,9 +22,10 @@ class Profile(Namespace):
     time: str
     releaseTime: str
     type: str
-    minecraftArguments: str
     mainClass: str
     logging: dict
+    arguments: Optional[Any] = None
+    minecraftArguments: str = None
     minimumLauncherVersion: int = None
     libraries: List[Library] = field(default_factory=list)
     jar: Optional[str] = None
@@ -26,11 +34,21 @@ class Profile(Namespace):
     downloads: Optional[Any] = None
     assets: Optional[str] = None
 
+    def __post_init__(self):
+        if self.arguments is not None:
+            self.minecraftArguments = self.build_minecraft_arguments(self.arguments)
+
     def merge(self, other: Profile):
         for key, value in other.items():
             if key == "libraries":
                 self[key] = list({library.name: library
-                                  for library in chain(self.libraries, other.libraries)}.values())
+                                  for library in chain(other.libraries, self.libraries)}.values())
+            elif key == "arguments":
+                self.arguments["game"].extend(value["game"])
+            elif key == "minecraftArguments":
+                # check for minecraftArguments is builded by arguments["game"]
+                if self.arguments is not None:
+                    self.minecraftArguments += " " + value
             elif isinstance(value, list):
                 self[key].extend(value)
             elif isinstance(value, dict):
@@ -38,11 +56,28 @@ class Profile(Namespace):
             else:
                 self[key] = value
 
+    def build_minecraft_arguments(self, arguments):
+        return " ".join(arg for arg in arguments["game"] if isinstance(arg, str))
+
 
 class LibraryDependency(NamedTuple):
     group: str
     artifact: str
     version: str
+    tag: str = None
+
+    def as_path(self) -> Path:
+        return Path(
+            posixpath.sep.join([
+                self.group.replace('.', '/'),
+                self.artifact,
+                self.version,
+                f"{'-'.join(filter(None, self[1:]))}.jar"
+            ])
+        )
+
+    def replace(self, **kwargs) -> LibraryDependency:
+        return self._replace(**kwargs)
 
 
 @dataclass(repr=False)
@@ -53,11 +88,19 @@ class Library(Namespace):
     serverreq: Optional[bool] = None
     clientreq: Optional[bool] = None
     downloads: Optional[LibraryDownloads] = None
+
+    # private (do not serialize this field)
     _dependency: LibraryDependency = None
 
     def __post_init__(self):
-        group, artifact, version = self.name.split(":")
-        self._dependency = LibraryDependency(group, artifact, version)
+        if self._dependency is None:
+            assert self.name.count(":") in (2, 3), self.name
+            if self.name.count(":") == 2:
+                group, artifact, version = self.name.split(":")
+            elif self.name.count(":") == 3:
+                group, artifact, version, tag = self.name.split(":")
+
+            self._dependency = LibraryDependency(group, artifact, version)
 
     @property
     def group(self) -> str:
@@ -73,13 +116,7 @@ class Library(Namespace):
 
     @property
     def path(self) -> str:
-        group, artifact, version = self._dependency
-        return posixpath.sep.join([
-            group.replace('.', '/'),
-            artifact,
-            version,
-            f"{artifact}-{version}.jar",
-        ])
+        return self._dependency.as_path()
 
 
 @dataclass(repr=False)
