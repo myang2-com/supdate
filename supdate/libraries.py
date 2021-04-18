@@ -1,9 +1,14 @@
+import dataclasses
+from distutils.version import LooseVersion
+from os.path import split
 import shutil
 from pathlib import Path
+from typing import Optional
 from urllib.parse import urlparse, ParseResult, urljoin
+import os
 
 from .forge import ForgeUniversal
-from .profile import Profile, Library, LibraryArtifactDownload, LibraryDownloads
+from .profile import InstallProfile, LibraryDependency, Profile, Library, LibraryArtifactDownload, LibraryDownloads
 from .utils import sha1_hexdigest
 
 
@@ -40,22 +45,60 @@ class LibrariesBuilder:
         else:
             return False
 
+    def update_from_install_profile(self, install_profile: Optional[InstallProfile], url: str):
+        if install_profile is None or install_profile.data is None:
+            return
+        elif "MCP_VERSION" not in install_profile.data:
+            return
+
+        # get vanilla/mcp version
+        mc_vanilla_version = self.forge_universal.vanilla_version
+        mcp_client_version = install_profile.data["MCP_VERSION"]["client"].strip("\'\"")
+        version = f"{mc_vanilla_version}-{mcp_client_version}"
+
+        libraries_folder = self.folder / "libraries"
+
+        # check corresponding version of (extra, silm, srg) jar file exists
+        # check forge 1.13+ libraries/net/minecraft/client for more informations
+        for tag in 'extra', 'slim', 'srg':
+            dependency = LibraryDependency(
+                group='net.minecraft',
+                artifact='client',
+                version=version,
+                tag=tag,
+            )
+
+            path = dependency.as_path()
+            file = libraries_folder / path
+
+            library = Library(
+                name=":".join(filter(None, dependency)),
+                clientreq=True,
+                downloads=self.build_artifact_download(file, path, url),
+                _dependency=dependency,
+            )
+
+            if not file.exists():
+                raise Exception(f"file is missing: {file}")
+
+            self.profile.libraries.append(library)
+
     def build(self, url: str, target_libraries_folder: Path, *, copy: bool):
-        # 소스 체크
         self.check_source()
 
         up: ParseResult = urlparse(url)
         if up.scheme not in ("http", "https"):
-            raise Exception(f"{up.scheme} is not supported protocol")
+            raise Exception(f"protocol {up.scheme!r} is not supported")
 
         libraries_folder = self.folder / "libraries"
         for pos, library in enumerate(self.profile.libraries[:]):
+            file = libraries_folder / library.path
+            path = file.relative_to(libraries_folder)
+
             if library.clientreq or library.serverreq:
-                file = libraries_folder / library.path
-                path = file.relative_to(libraries_folder)
+                if library.version < LooseVersion("1.13"):
+                    assert not library.downloads
             elif is_forge_universal(library):
-                file = libraries_folder / library.path
-                path = Path(library.path)
                 if self.check_all_forge_jars(file):
                     for tag in "universal", "client":
                         sfile = file.with_stem(f"{file.stem}-{tag}")
@@ -70,7 +113,7 @@ class LibrariesBuilder:
                         new_library = Library(
                             name=f"{library.name}-{tag}",
                             downloads=LibraryDownloads(artifact=download),
-                            _dependency=library._dependency
+                            _dependency=library._dependency.replace(tag=tag),
                         )
                         self.profile.libraries.insert(pos + 1, new_library)
                 else:
@@ -79,9 +122,6 @@ class LibrariesBuilder:
                 continue
 
             assert file.exists(), file
-
-            if not is_forge_universal(library):
-                assert not library.downloads
 
             download = self.build_artifact_download(file, path, url)
             library.downloads = LibraryDownloads(artifact=download)

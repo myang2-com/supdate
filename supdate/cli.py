@@ -73,8 +73,10 @@ class SUpdate:
         forge_installer.install()
 
         forge_profile = forge_installer.full_profile()
+        install_profile = forge_installer.install_profile()
 
         libraries = LibrariesBuilder(forge_profile, forge_path, forge_installer)
+        libraries.update_from_install_profile(install_profile, self.libraries_url)
         libraries.build(self.libraries_url, self.libraries_path, copy=True)
 
         forge_profile.write_to_path(forge_profile_path)
