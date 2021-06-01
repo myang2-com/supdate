@@ -49,6 +49,8 @@ class Profile(Namespace):
                 # check for minecraftArguments is builded by arguments["game"]
                 if self.arguments is not None:
                     self.minecraftArguments += " " + value
+                else:
+                    self.minecraftArguments = value
             elif isinstance(value, list):
                 self[key].extend(value)
             elif isinstance(value, dict):
