@@ -1,6 +1,19 @@
 from hashlib import sha1 as _sha1
 from pathlib import Path
 
+from zipfile import ZipFile
+import json
+
+def load_json_from_jar(jar: Path, filename: str) -> dict:
+    with ZipFile(jar) as zf:
+        try:
+            fp = zf.open(filename)
+        except KeyError:
+            raise FileNotFoundError(f"{filename} does not exist in f{jar.name}!")
+
+        with fp:
+            content = fp.read().decode('utf-8')
+            return json.loads(content)
 
 def sha1_hexdigest(file: Path):
     if not file.exists():
