@@ -104,6 +104,11 @@ class ForgeInstaller(ForgeBase):
         except FileNotFoundError:
             return None
 
+    def load_version(self):
+        # installer.jar에는 version.json 파일이 존재하지 않습니다.
+        # universal을 참조하도록 해주세요.
+        return Profile.from_json(in_jar(self.universal, VERSION_JSON))
+
     def download_forge(self):
         res = requests.get(self.url, stream=True)
         res.raise_for_status()

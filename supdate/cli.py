@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Tuple
 from urllib.parse import urljoin
-from packaging.version import parse as v
+from packaging.version import parse as version_
 
 import click
 import requests_cache
@@ -28,10 +28,11 @@ VERSION_FORMS = {
     "1.7.10": "forge-{mc}-{forge}-{mc}(-{type})",
     "default": "forge-{mc}-{forge}(-{type})"
 }
-def get_version_form(version: str):
+def get_version_form(v: str):
     for key_version, form in VERSION_FORMS.items():
-        if v(version) == v(key_version):
+        if version_(v) == version_(key_version):
             return form
+
     return VERSION_FORMS["default"]
 
 
