@@ -23,7 +23,8 @@ class Profile(Namespace):
     releaseTime: str
     type: str
     mainClass: str
-    logging: dict
+    # 1.7.10에선 Version profile에서 logging이 지원되지 않습니다.
+    logging: dict = field(default_factory=dict)
     arguments: Optional[Any] = None
     minecraftArguments: str = None
     minimumLauncherVersion: int = None
