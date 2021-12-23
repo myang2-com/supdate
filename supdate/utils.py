@@ -9,7 +9,7 @@ def load_json_from_jar(jar: Path, filename: str) -> dict:
         try:
             fp = zf.open(filename)
         except KeyError:
-            raise FileNotFoundError(f"{filename} does not exist in f{jar.name}!")
+            raise FileNotFoundError(f"{filename} does not exist in {jar.name}!")
 
         with fp:
             content = fp.read().decode('utf-8')
