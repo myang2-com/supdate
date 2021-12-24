@@ -143,4 +143,7 @@ cython_debug/
 /.supdate.sqlite
 /supdate.pyz
 
+.idea/
+backup/
+
 .vscode

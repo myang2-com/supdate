@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Tuple
 from urllib.parse import urljoin
+from packaging.version import parse as version_
 
 import click
 import requests_cache
@@ -22,6 +23,17 @@ from .profile import Profile
 from .utils import sha1_hexdigest
 
 DOMAIN = "myang2.com"
+
+VERSION_FORMS = {
+    "1.7.10": "forge-{mc}-{forge}-{mc}(-{type})",
+    "default": "forge-{mc}-{forge}(-{type})"
+}
+def get_version_form(v: str):
+    for key_version, form in VERSION_FORMS.items():
+        if version_(v) == version_(key_version):
+            return form
+
+    return VERSION_FORMS["default"]
 
 
 class ClickPath(click.Path):
@@ -69,11 +81,12 @@ class SUpdate:
     ) -> Path:
         vanilla_version, forge_version, forge_path, forge_profile_path = self.prepare_forge(version, forge_path)
 
-        forge_installer = ForgeInstaller(vanilla_version, forge_version, forge_path)
+        form = get_version_form(vanilla_version)
+        forge_installer = ForgeInstaller(vanilla_version, forge_version, forge_path, form)
         forge_installer.install()
 
-        forge_profile = forge_installer.full_profile()
-        install_profile = forge_installer.install_profile()
+        forge_profile = forge_installer.full_profile
+        install_profile = forge_installer.install_profile
 
         libraries = LibrariesBuilder(forge_profile, forge_path, forge_installer)
         libraries.update_from_install_profile(install_profile, self.libraries_url)
@@ -124,7 +137,7 @@ class SUpdate:
         prev_package = Package.read_from_path(modpack_path) if modpack_path.exists() else None
 
         forge_profile_path = instance_path / f"forge-{forge_version}.json"
-        if update_forge != False and (
+        if update_forge is not False and (
                 update_forge or
                 not forge_profile_path.exists() or
                 not self.check_forge(forge_version, forge_path=instance_path)

@@ -72,6 +72,7 @@ class Namespace(MutableMapping):
             tp = hints.get(field.name, field.type)
             tp = get_optional(tp) or tp
             origin = get_origin(tp)
+
             if is_dataclass(tp) and issubclass(tp, Namespace):
                 value = tp.from_json(value)
             elif origin in (list, List):
@@ -85,6 +86,9 @@ class Namespace(MutableMapping):
                 if is_dataclass(tv) and issubclass(tv, Namespace):
                     assert isinstance(value, dict)
                     value = {key: tv.from_json(value) for key, value in value.items()}
+            # Forced to cast a type because of wrong floats
+            if field.type == 'int':
+                value = int(value)
 
             values[field.name] = value
 

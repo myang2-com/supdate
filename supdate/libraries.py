@@ -1,13 +1,10 @@
-import dataclasses
-from distutils.version import LooseVersion
-from os.path import split
 import shutil
+from distutils.version import LooseVersion
 from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse, ParseResult, urljoin
-import os
 
-from .forge import ForgeUniversal
+from .forge import ForgeBase
 from .profile import InstallProfile, LibraryDependency, Profile, Library, LibraryArtifactDownload, LibraryDownloads
 from .utils import sha1_hexdigest
 
@@ -17,10 +14,10 @@ def is_forge_universal(library: Library):
 
 
 class LibrariesBuilder:
-    def __init__(self, profile: Profile, folder: Path, forge_universal: ForgeUniversal = None):
+    def __init__(self, profile: Profile, folder: Path, forge_base: ForgeBase = None):
         self.profile = profile
         self.folder = folder
-        self.forge_universal = forge_universal
+        self.forge_base = forge_base
 
     def check_source(self):
         for library in self.profile.libraries:
@@ -52,7 +49,7 @@ class LibrariesBuilder:
             return
 
         # get vanilla/mcp version
-        mc_vanilla_version = self.forge_universal.vanilla_version
+        mc_vanilla_version = self.forge_base.vanilla_version
         mcp_client_version = install_profile.data["MCP_VERSION"]["client"].strip("\'\"")
         version = f"{mc_vanilla_version}-{mcp_client_version}"
 
@@ -117,7 +114,7 @@ class LibrariesBuilder:
                         )
                         self.profile.libraries.insert(pos + 1, new_library)
                 else:
-                    file = self.folder / self.forge_universal.universal
+                    file = self.forge_base.universal
             else:
                 continue
 

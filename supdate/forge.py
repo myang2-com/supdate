@@ -1,138 +1,124 @@
-import json
 import subprocess
-from typing import Optional
-import zipfile
-from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
+from typing import Optional
 
+import attr
 import requests
 
 from .profile import Profile, InstallProfile
+from .utils import load_json_from_jar as in_jar
 from .vanilla import fetch_vanilla_profile
 
+VERSION_JSON = "version.json"
+INSTALL_JSON = "install_profile.json"
 
-class FileNotFoundInZipError(FileNotFoundError):
-    pass
+FORGE_MAVEN = "files.minecraftforge.net/maven"
+FORGE_URI = "net/minecraftforge/forge"
 
 
-@dataclass
-class ForgeUniversal:
-    vanilla_version: str
+class ForgeType(Enum):
+    INSTALLER = "installer"
+    UNIVERSAL = "universal"
+
+
+@attr.s(auto_attribs=True)
+class ForgeBase:
+    mc_version: str
     forge_version: str
-    folder: Path
-    universal: Path = None
+    directory: Path
 
-    def find_universal_file(self):
-        standard_filename = self.folder / \
-            self.build_standard_filename(
-                self.vanilla_version, self.forge_version)
-        if standard_filename.exists():
-            return standard_filename
-
-        universal_file = self.folder / \
-            self.build_universal_filename(
-                self.vanilla_version, self.forge_version)
-        if universal_file.exists():
-            return universal_file
-
-        raise Exception("forge-*.jar not exists")
-
-    @staticmethod
-    def build_standard_filename(vanilla_version: str, forge_version: str):
-        return f"forge-{vanilla_version}-{forge_version}.jar"
-
-    @staticmethod
-    def build_universal_filename(vanilla_version: str, forge_version: str):
-        return f"forge-{vanilla_version}-{forge_version}-universal.jar"
-
-    def forge_profile(self) -> Profile:
-        return self.load_version_from_jar(self.universal)
-
-    @classmethod
-    def load_version_from_jar(cls, path: Path) -> Profile:
-        data = cls.load_json_from_jar(path, "version.json")
-        return Profile.from_json(data)
-
-    @staticmethod
-    def load_json_from_jar(path: Path, name: str) -> dict:
-        with zipfile.ZipFile(path) as zf:
-            try:
-                fp = zf.open(name)
-            except KeyError:
-                raise FileNotFoundInZipError(name)
-
-            with fp:
-                content = fp.read().decode('utf-8')
-                return json.loads(content)
-
-    def vanilla_profile(self) -> Profile:
-        return fetch_vanilla_profile(self.vanilla_version)
-
-    def full_profile(self) -> Profile:
-        forge_profile = self.forge_profile()
-        assert forge_profile.inheritsFrom == self.vanilla_version, (
-            forge_profile.inheritsFrom, self.vanilla_version)
-
-        vanilla_profile = self.vanilla_profile()
-        vanilla_profile.merge(forge_profile)
-        vanilla_profile.inheritsFrom = None
-
-        profile = vanilla_profile
-        return profile
-
-
-@dataclass
-class ForgeInstaller(ForgeUniversal):
-    installer: Path = None
-
-    def __post_init__(self):
-        if self.installer is None:
-            self.installer = self.folder / self.installer_name
-
-    def forge_profile(self) -> Profile:
-        try:
-            return self.load_version_from_jar(self.installer)
-        except FileNotFoundInZipError as e:
-            return self.load_version_from_jar(self.universal)
-
-    def install_profile(self) -> Optional[InstallProfile]:
-        return self.load_install_profile_from_jar(self.installer)
-
-    def load_install_profile_from_jar(self, path: Path) -> Optional[InstallProfile]:
-        try:
-            data = self.load_json_from_jar(path, "install_profile.json")
-            return InstallProfile.from_json(data)
-        except FileNotFoundInZipError:
-            return None
+    form: str
+    type: ForgeType
 
     @property
-    def installer_url(self):
-        return (
-            f"https://files.minecraftforge.net/maven/"
-            f"net/minecraftforge/forge/"
-            f"{self.vanilla_version}-{self.forge_version}/"
-            f"{self.installer_name}"
+    def vanilla_version(self):
+        return self.mc_version
+
+    @property
+    def _basic_name(self):
+        return self.form.replace("{mc}", self.mc_version)       \
+                        .replace("{forge}", self.forge_version)
+
+    @property
+    def standard_name(self):
+        return self._basic_name.replace("(-{type})", "")
+
+    @property
+    def full_name(self):
+        return self._basic_name.replace("(-{type})", f"-{self.type.value}")
+
+    @property
+    def jar(self) -> Path:
+        return self.directory / f"{self.full_name}.jar"
+
+    @property
+    def universal(self):
+        std_file = self.directory / f"{self.standard_name}.jar"
+        if std_file.exists():
+            return std_file
+
+        univ_file = self.directory / f"{self._basic_name}.jar".replace("(-{type})", f"-{ForgeType.UNIVERSAL.value}")
+        if univ_file.exists():
+            return univ_file
+
+        raise FileNotFoundError("Forge universal jar file has not been found.")
+
+    def load_version(self):
+        return Profile.from_json(in_jar(self.jar, VERSION_JSON))
+
+    @property
+    def forge_profile(self) -> Profile:
+        return self.load_version()
+
+    @property
+    def vanilla_profile(self) -> Profile:
+        return fetch_vanilla_profile(self.mc_version)
+
+    @property
+    def full_profile(self) -> Profile:
+        fp = self.forge_profile
+        assert fp.inheritsFrom == self.mc_version, (
+            fp.inheritsFrom, self.mc_version
         )
 
+        profile = self.vanilla_profile
+        profile.merge(fp)
+        profile.inheritsFrom = None
+
+        return profile
+
     @property
-    def installer_name(self):
-        return self.get_installer_name(self.vanilla_version, self.forge_version)
+    def url(self):
+        return f"https://{FORGE_MAVEN}/{FORGE_URI}/{self.standard_name}/{self.full_name}.jar"
 
-    @staticmethod
-    def get_installer_name(vanilla_version: str, forge_version: str):
-        return f"forge-{vanilla_version}-{forge_version}-installer.jar"
 
-    def download(self):
-        res = requests.get(self.installer_url, stream=True)
+@attr.s(auto_attribs=True)
+class ForgeInstaller(ForgeBase):
+    type: ForgeType = ForgeType.INSTALLER
+
+    @property
+    def install_profile(self) -> Optional[InstallProfile]:
+        try:
+            return InstallProfile.from_json(in_jar(self.jar, INSTALL_JSON))
+        except FileNotFoundError:
+            return None
+
+    def load_version(self):
+        # installer.jar에는 version.json 파일이 존재하지 않습니다.
+        # universal을 참조하도록 해주세요.
+        return Profile.from_json(in_jar(self.universal, VERSION_JSON))
+
+    def download_forge(self):
+        res = requests.get(self.url, stream=True)
         res.raise_for_status()
 
-        with self.installer.open('wb') as fp:
+        with self.jar.open('wb') as fp:
             for chunk in res:
                 fp.write(chunk)
 
     def install(self, *, auto_download=True):
-        if auto_download and not self.installer.exists():
-            self.download()
+        if auto_download and not self.jar.exists():
+            self.download_forge()
 
-        subprocess.check_call(["java", "-jar", str(self.installer.absolute()), "--installServer"], cwd=str(self.folder))
-        self.universal = self.find_universal_file()
+        subprocess.check_call(["java", "-jar", str(self.jar.absolute()), "--installServer"], cwd=str(self.directory))
