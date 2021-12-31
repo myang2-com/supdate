@@ -27,7 +27,7 @@ class Profile(Namespace):
     logging: dict = field(default_factory=dict)
     arguments: Optional[Any] = None
     minecraftArguments: str = None
-    minimumLauncherVersion: int = None
+    minimumLauncherVersion: float = None
     libraries: List[Library] = field(default_factory=list)
     jar: Optional[str] = None
     inheritsFrom: Optional[str] = None
