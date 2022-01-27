@@ -169,10 +169,10 @@ class SUpdate:
         if not exclusion_json.exists():
             exclusion_json.write_text(
                 (
-                    "{"
-                    f'\t"{exclusion_key}": ['
-                    '\t\t"config/Chikachi/**/*"'
-                    '\t]'
+                    "{\n"
+                    f'\t"{exclusion_key}": [\n'
+                    '\t\t"config/Chikachi/**/*"\n'
+                    '\t]\n'
                     "}"
                 )
                 , "utf-8")
