@@ -4,6 +4,7 @@ import re
 import shutil
 import tempfile
 import zipapp
+import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -158,7 +159,32 @@ class SUpdate:
         package_builder.include("mods/**/*")
         package_builder.include("config/**/*")
         package_builder.include("scripts/**/*")
+
+        # Builtin exclusions
         package_builder.exclude("config/Chikachi/**/*")
+
+        # excludes all selected files from the server side
+        exclusion_json = instance_path / "exclude.json"
+        exclusion_key = "exclude"
+        if not exclusion_json.exists():
+            default_exclusion = {
+                exclusion_key: [
+                    "config/Chikachi/**/*",
+                ]
+            }
+            exclusion_json.write_text(json.dumps(default_exclusion))
+
+        try:
+            with exclusion_json.open() as json_file:
+                exclusion = json.load(json_file)
+
+            if exclusion_key in exclusion and isinstance(exclusion[exclusion_key], list):
+                for ignore in exclusion[exclusion_key]:
+                    package_builder.exclude(ignore)
+
+        except ValueError as err:
+            raise Exception("Fatal error occurred from exclude.json") from err
+
         package_builder.build()
 
         client_builder = PackageBuilder(package, client_path, package_path, package_url)
