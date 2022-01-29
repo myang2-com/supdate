@@ -167,15 +167,12 @@ class SUpdate:
         exclusion_json = instance_path / "exclude.json"
         exclusion_key = "exclude"
         if not exclusion_json.exists():
-            exclusion_json.write_text(
-                (
-                    "{\n"
-                    f'\t"{exclusion_key}": [\n'
-                    '\t\t"config/Chikachi/**/*"\n'
-                    '\t]\n'
-                    "}"
-                )
-                , "utf-8")
+            default_exclusion = {
+                exclusion_key: [
+                    "config/Chikachi/**/*",
+                ]
+            }
+            exclusion_json.write_text(json.dumps(default_exclusion))
 
         try:
             with exclusion_json.open() as json_file:
@@ -186,8 +183,7 @@ class SUpdate:
                     package_builder.exclude(ignore)
 
         except ValueError as err:
-            print("Fatal error occurred from exclude.json!")
-            raise err
+            raise Exception("Fatal error occurred from exclude.json") from err
 
         package_builder.build()
 
