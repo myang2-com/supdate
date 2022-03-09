@@ -1,14 +1,17 @@
 import subprocess
+import attr
+import requests
+import re
+
 from enum import Enum
 from pathlib import Path
 from typing import Optional
-
-import attr
-import requests
+from distutils.version import LooseVersion
 
 from .profile import Profile, InstallProfile
-from .utils import load_json_from_jar as in_jar
+from .utils import is_file_in_jar, load_json_from_jar as in_jar
 from .vanilla import fetch_vanilla_profile
+
 
 VERSION_JSON = "version.json"
 INSTALL_JSON = "install_profile.json"
@@ -65,7 +68,10 @@ class ForgeBase:
         raise FileNotFoundError("Forge universal jar file has not been found.")
 
     def load_version(self):
-        return Profile.from_json(in_jar(self.jar, VERSION_JSON))
+        if is_file_in_jar(self.universal, VERSION_JSON):
+            return Profile.from_json(in_jar(self.universal, VERSION_JSON))
+        else:
+            raise FileNotFoundError("Forge version profile json has not been found.")
 
     @property
     def forge_profile(self) -> Profile:
@@ -105,9 +111,13 @@ class ForgeInstaller(ForgeBase):
             return None
 
     def load_version(self):
-        # installer.jar에는 version.json 파일이 존재하지 않습니다.
-        # universal을 참조하도록 해주세요.
-        return Profile.from_json(in_jar(self.universal, VERSION_JSON))
+        # From 1.13, Version.json is included in the installer jar.
+        if self.mc_version < LooseVersion("1.13"):
+            return super().load_version()
+        elif is_file_in_jar(self.jar, VERSION_JSON):
+            return Profile.from_json(in_jar(self.jar, VERSION_JSON))
+        else:
+            raise FileNotFoundError("Forge version profile json has not been found.")
 
     def download_forge(self):
         res = requests.get(self.url, stream=True)
