@@ -14,7 +14,6 @@ from .vanilla import fetch_vanilla_profile
 
 
 VERSION_JSON = "version.json"
-FORGE_JSON_PATTERN = re.compile(r"forge-((?:\d+)(?:\.\d+)*)\.json", re.IGNORECASE)
 INSTALL_JSON = "install_profile.json"
 
 FORGE_MAVEN = "files.minecraftforge.net/maven"
