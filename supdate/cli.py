@@ -5,12 +5,13 @@ import shutil
 import tempfile
 import zipapp
 import json
+
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple, List, Union
 from urllib.parse import urljoin
-from packaging.version import parse as version_
+from distutils.version import LooseVersion
 
 import click
 import requests_cache
@@ -21,20 +22,20 @@ from .index import IndexPackageManifest, Launcher, IndexPackage
 from .libraries import LibrariesBuilder
 from .package import Package, PackageBuilder
 from .profile import Profile
-from .utils import sha1_hexdigest
+from .utils import sha1_hexdigest, VersionRange
 
 DOMAIN = "myang2.com"
 
 VERSION_FORMS = {
-    "1.7.10": "forge-{mc}-{forge}-{mc}(-{type})",
-    "default": "forge-{mc}-{forge}(-{type})"
+    "[1.7, 1.7.10]": "forge-{mc}-{forge}-{mc}(-{type})",
 }
+DEFAULT_VERSION_FORM = "forge-{mc}-{forge}(-{type})"
 def get_version_form(v: str):
-    for key_version, form in VERSION_FORMS.items():
-        if version_(v) == version_(key_version):
+    for version_range, form in VERSION_FORMS.items():
+        if v in VersionRange(version_range):
             return form
 
-    return VERSION_FORMS["default"]
+    return DEFAULT_VERSION_FORM
 
 
 class ClickPath(click.Path):
