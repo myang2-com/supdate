@@ -1,10 +1,10 @@
 import subprocess
+from dataclasses import dataclass
 from distutils.version import LooseVersion
 from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-import attr
 import requests
 
 from .profile import InstallProfile, Profile
@@ -23,7 +23,7 @@ class ForgeType(Enum):
     UNIVERSAL = "universal"
 
 
-@attr.s(auto_attribs=True)
+@dataclass
 class ForgeBase:
     mc_version: str
     forge_version: str
@@ -97,7 +97,7 @@ class ForgeBase:
         return f"https://{FORGE_MAVEN}/{FORGE_URI}/{self.standard_name}/{self.full_name}.jar"
 
 
-@attr.s(auto_attribs=True)
+@dataclass
 class ForgeInstaller(ForgeBase):
     type: ForgeType = ForgeType.INSTALLER
 
