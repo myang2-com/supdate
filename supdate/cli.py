@@ -16,6 +16,8 @@ from click import Context, Group as Cli
 
 from .index import IndexPackage, IndexPackageManifest, Launcher
 from .package import Package, PackageBuilder
+from .providers.base import Provider
+from .providers.fabric import FabricProvider
 from .providers.forge import ForgeProvider
 from .utils import sha1_hexdigest
 from .versions import calc_next_version
@@ -38,11 +40,13 @@ class SUpdate:
     libraries_url: str
     packages_url: str
     current_datetime: str = None
+    provider: Optional[Provider] = None
 
     def __post_init__(self):
         self.libraries_url = self.libraries_url.rstrip("/")
         self.packages_url = self.packages_url.rstrip("/")
         self.current_datetime = datetime.now().strftime("%Y-%m-%dT%H:%M:%S+0000")
+        self.fabric_provider = FabricProvider()
         self.forge_provider = ForgeProvider(
             forge_path=self.forge_path,
             libraries_path=self.libraries_path,
@@ -56,10 +60,9 @@ class SUpdate:
     def cmd_package(
         self,
         name: str,
-        forge_version: Optional[str] = None,
-        update_forge: bool = None,
+        version: Optional[str] = None,
         *,
-        from_cmd=False,
+        force_build: bool = None,
     ) -> Path:
         instance_path = self.instances_path / name
         package_path = self.packages_path / name
@@ -77,12 +80,13 @@ class SUpdate:
             Package.read_from_path(modpack_path) if modpack_path.exists() else None
         )
 
-        _, forge_profile = self.forge_provider.auto_profile(
+        _, provider_profile = self.provider.auto_profile(
             instance_path=instance_path,
-            version=forge_version,
-            force_build=update_forge,
+            version=version,
+            force_build=force_build,
         )
-        package = Package.from_profile(forge_profile)
+
+        package = Package.from_profile(provider_profile)
         package.id = name
         package.name = prev_package.name if prev_package else name
         package.version = calc_next_version(prev_manifest.version)
@@ -134,8 +138,7 @@ class SUpdate:
         modpack_path.parent.mkdir(exist_ok=True)
         package.write_to_path(modpack_path)
 
-        if not from_cmd:
-            self.cmd_update()
+        self.cmd_update()
 
         return modpack_path
 
@@ -209,6 +212,7 @@ class SUpdate:
     help="instances/",
     type=ClickPath(),
 )
+@click.option("--provider", type=click.Choice(["fabric", "forge"]))
 @click.option(
     "--forge", metavar="PATH", default="./forge/", help="forge/", type=ClickPath()
 )
@@ -246,6 +250,7 @@ class SUpdate:
 def cli(
     ctx: Context,
     instances: Path,
+    provider: str,
     forge: Path,
     packages: Path,
     libraries: Path,
@@ -276,6 +281,11 @@ def cli(
         libraries_url=libraries_url,
     )
 
+    ctx.obj.provider = {
+        "fabric": ctx.obj.fabric_provider,
+        "forge": ctx.obj.forge_provider,
+    }.get(provider)
+
     if use_requests_cache:
         requests_cache.install_cache(".supdate")
 
@@ -284,30 +294,36 @@ if TYPE_CHECKING:
     cli: Cli
 
 
-@cli.command("forge", help="build forge profile")
+@cli.command("build-profile", help="build fabric/forge profile")
 @click.argument("version")
 @click.pass_obj
-def cli_forge(supdate: SUpdate, version: str):
-    forge_profile_path, forge_profile = supdate.forge_provider.auto_profile(
+def cli_build_profile(supdate: SUpdate, version: str):
+    profile_path, profile = supdate.provider.auto_profile(
         instance_path=supdate.instances_path,
         version=version,
         force_build=True,
     )
-    print(forge_profile_path)
+    print(profile_path)
 
 
 @cli.command("package", help="packaging modpack from instances/")
 @click.argument("name")
-@click.option("--forge-version")
-@click.option("--force-update-forge/--no-update-forge", default=None)
+@click.option("--version")
+@click.option("--force-build/--no-build", default=None)
 @click.pass_obj
 def cli_package(
     supdate: SUpdate,
     name: str,
-    forge_version: Optional[str],
-    force_update_forge: Optional[bool],
+    version: str,
+    force_build: Optional[bool],
 ):
-    print(supdate.cmd_package(name, forge_version, force_update_forge))
+    print(
+        supdate.cmd_package(
+            name,
+            version=version,
+            force_build=force_build,
+        )
+    )
 
 
 @cli.command("update", help="update index from web/packages/")
