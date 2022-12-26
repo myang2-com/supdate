@@ -4,7 +4,7 @@ import posixpath
 from dataclasses import dataclass, field
 from itertools import chain
 from pathlib import Path
-from typing import List, Optional, Any, NamedTuple
+from typing import Any, List, NamedTuple, Optional
 
 from .typed import Namespace
 

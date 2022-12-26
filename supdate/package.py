@@ -3,12 +3,12 @@ from __future__ import annotations
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 from urllib.parse import urljoin
 
 from .profile import Profile
 from .typed import Namespace
-from .utils import sha1_hexdigest, is_same_file
+from .utils import is_same_file, sha1_hexdigest
 
 
 @dataclass

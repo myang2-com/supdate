@@ -1,11 +1,10 @@
+import json
+from distutils.version import LooseVersion
 from hashlib import sha1 as _sha1
 from pathlib import Path
-
-from typing import Union, List
-from distutils.version import LooseVersion
-
+from typing import List, Union
 from zipfile import ZipFile
-import json
+
 
 class VersionRange:
     def __init__(self, vrange: str):

@@ -1,17 +1,15 @@
 import subprocess
-import attr
-import requests
-import re
-
+from distutils.version import LooseVersion
 from enum import Enum
 from pathlib import Path
 from typing import Optional
-from distutils.version import LooseVersion
 
-from .profile import Profile, InstallProfile
+import attr
+import requests
+
+from .profile import InstallProfile, Profile
 from .utils import is_file_in_jar, load_json_from_jar as in_jar
 from .vanilla import fetch_vanilla_profile
-
 
 VERSION_JSON = "version.json"
 INSTALL_JSON = "install_profile.json"

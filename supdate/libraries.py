@@ -2,10 +2,11 @@ import shutil
 from distutils.version import LooseVersion
 from pathlib import Path
 from typing import Optional
-from urllib.parse import urlparse, ParseResult, urljoin
+from urllib.parse import ParseResult, urljoin, urlparse
 
 from .forge import ForgeBase
-from .profile import InstallProfile, LibraryDependency, Profile, Library, LibraryArtifactDownload, LibraryDownloads
+from .profile import InstallProfile, Library, LibraryArtifactDownload, \
+    LibraryDependency, LibraryDownloads, Profile
 from .utils import sha1_hexdigest
 
 

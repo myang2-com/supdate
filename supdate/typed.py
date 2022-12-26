@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 from collections import MutableMapping
-from dataclasses import dataclass, fields, Field, MISSING, is_dataclass
+from dataclasses import Field, MISSING, dataclass, fields, is_dataclass
 from pathlib import Path
-from typing import Type, Union, List, Optional, get_type_hints, Dict
+from typing import Dict, List, Optional, Type, Union, get_type_hints
 
-from typing_inspect import is_optional_type, get_origin, get_args
+from typing_inspect import get_args, get_origin, is_optional_type
 
 
 def get_optional(tp: Type):

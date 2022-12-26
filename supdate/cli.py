@@ -1,28 +1,26 @@
 import compileall
+import json
 import os
 import re
 import shutil
 import tempfile
 import zipapp
-import json
-
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Tuple, List, Union
+from typing import Optional, TYPE_CHECKING, Tuple
 from urllib.parse import urljoin
-from distutils.version import LooseVersion
 
 import click
 import requests_cache
-from click import Group as Cli, Context
+from click import Context, Group as Cli
 
 from .forge import ForgeInstaller
-from .index import IndexPackageManifest, Launcher, IndexPackage
+from .index import IndexPackage, IndexPackageManifest, Launcher
 from .libraries import LibrariesBuilder
 from .package import Package, PackageBuilder
 from .profile import Profile
-from .utils import sha1_hexdigest, VersionRange
+from .utils import VersionRange, sha1_hexdigest
 
 DOMAIN = "myang2.com"
 
