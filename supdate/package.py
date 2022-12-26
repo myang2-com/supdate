@@ -4,7 +4,7 @@ import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin
 
 from .profile import Profile
 from .typed import Namespace
@@ -88,5 +88,5 @@ class PackageBuilder:
                 size=file_stat.st_size,
                 sha1=sha1_hexdigest(file),
                 path=path.as_posix(),
-                url=urljoin(self.package_url, path.as_posix())
+                url=urljoin(self.package_url, quote(path.as_posix(), safe="/+'"))
             ))
