@@ -124,7 +124,7 @@ class Library(Namespace):
         return self._dependency.version
 
     @property
-    def path(self) -> str:
+    def path(self) -> Path:
         return self._dependency.as_path()
 
 
