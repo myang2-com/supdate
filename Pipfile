@@ -11,6 +11,8 @@ typing-inspect = "*"
 requests = "*"
 requests-cache = "*"
 click = "*"
+pydantic = "*"
+devtools = "*"
 
 [requires]
 python_version = "3.9"
