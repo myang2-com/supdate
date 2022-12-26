@@ -28,6 +28,8 @@ VERSION_FORMS = {
     "[1.7, 1.7.10]": "forge-{mc}-{forge}-{mc}(-{type})",
 }
 DEFAULT_VERSION_FORM = "forge-{mc}-{forge}(-{type})"
+
+
 def get_version_form(v: str):
     for version_range, form in VERSION_FORMS.items():
         if v in VersionRange(version_range):
@@ -53,17 +55,19 @@ class SUpdate:
     current_datetime: str = None
 
     def __post_init__(self):
-        self.libraries_url = self.libraries_url.rstrip('/')
-        self.packages_url = self.packages_url.rstrip('/')
+        self.libraries_url = self.libraries_url.rstrip("/")
+        self.packages_url = self.packages_url.rstrip("/")
         self.current_datetime = datetime.now().strftime("%Y-%m-%dT%H:%M:%S+0000")
 
     @property
     def index_path(self):
         return self.packages_path / "index.json"
 
-    def prepare_forge(self, version: str, forge_path: Optional[Path] = None) -> Tuple[str, str, Path, Path]:
-        assert version.count('-') == 1
-        vanilla_version, sep, forge_version = version.partition('-')
+    def prepare_forge(
+        self, version: str, forge_path: Optional[Path] = None
+    ) -> Tuple[str, str, Path, Path]:
+        assert version.count("-") == 1
+        vanilla_version, sep, forge_version = version.partition("-")
         assert sep
 
         if forge_path is None:
@@ -73,16 +77,18 @@ class SUpdate:
         forge_profile_path = forge_path / f"forge-{version}.json"
         return vanilla_version, forge_version, forge_path, forge_profile_path
 
-    def cmd_forge(
-            self,
-            version: str,
-            *,
-            forge_path: Optional[Path] = None
-    ) -> Path:
-        vanilla_version, forge_version, forge_path, forge_profile_path = self.prepare_forge(version, forge_path)
+    def cmd_forge(self, version: str, *, forge_path: Optional[Path] = None) -> Path:
+        (
+            vanilla_version,
+            forge_version,
+            forge_path,
+            forge_profile_path,
+        ) = self.prepare_forge(version, forge_path)
 
         form = get_version_form(vanilla_version)
-        forge_installer = ForgeInstaller(vanilla_version, forge_version, forge_path, form)
+        forge_installer = ForgeInstaller(
+            vanilla_version, forge_version, forge_path, form
+        )
         forge_installer.install()
 
         forge_profile = forge_installer.full_profile
@@ -96,10 +102,10 @@ class SUpdate:
         return forge_profile_path
 
     def check_forge(
-            self,
-            version: str,
-            *,
-            forge_path: Optional[Path] = None,
+        self,
+        version: str,
+        *,
+        forge_path: Optional[Path] = None,
     ) -> bool:
         _, _, forge_path, forge_profile_path = self.prepare_forge(version, forge_path)
         if not forge_path.exists():
@@ -110,12 +116,12 @@ class SUpdate:
         return libraries.check_target(self.libraries_path)
 
     def cmd_package(
-            self,
-            name: str,
-            forge_version: Optional[str] = None,
-            update_forge: bool = None,
-            *,
-            from_cmd=False,
+        self,
+        name: str,
+        forge_version: Optional[str] = None,
+        update_forge: bool = None,
+        *,
+        from_cmd=False,
     ) -> Path:
         instance_path = self.instances_path / name
         package_path = self.packages_path / name
@@ -134,13 +140,15 @@ class SUpdate:
                 raise Exception("can't find forge version")
 
         prev_manifest = self.get_latest_manifest()
-        prev_package = Package.read_from_path(modpack_path) if modpack_path.exists() else None
+        prev_package = (
+            Package.read_from_path(modpack_path) if modpack_path.exists() else None
+        )
 
         forge_profile_path = instance_path / f"forge-{forge_version}.json"
         if update_forge is not False and (
-                update_forge or
-                not forge_profile_path.exists() or
-                not self.check_forge(forge_version, forge_path=instance_path)
+            update_forge
+            or not forge_profile_path.exists()
+            or not self.check_forge(forge_version, forge_path=instance_path)
         ):
             forge_profile_path = self.cmd_forge(forge_version, forge_path=instance_path)
 
@@ -154,7 +162,9 @@ class SUpdate:
         assert not self.packages_url.endswith("/")
         package_url = f"{self.packages_url}/{name}/"
 
-        package_builder = PackageBuilder(package, instance_path, package_path, package_url)
+        package_builder = PackageBuilder(
+            package, instance_path, package_path, package_url
+        )
         package_builder.include("mods/**/*")
         package_builder.include("config/**/*")
         package_builder.include("scripts/**/*")
@@ -177,7 +187,9 @@ class SUpdate:
             with exclusion_json.open() as json_file:
                 exclusion = json.load(json_file)
 
-            if exclusion_key in exclusion and isinstance(exclusion[exclusion_key], list):
+            if exclusion_key in exclusion and isinstance(
+                exclusion[exclusion_key], list
+            ):
                 for ignore in exclusion[exclusion_key]:
                     package_builder.exclude(ignore)
 
@@ -223,8 +235,12 @@ class SUpdate:
 
             package = Package.read_from_path(modpack_path)
 
-            prev_index_package = prev_manifest.packages.get(package.id) if prev_manifest else None
-            if prev_index_package and prev_index_package.sha1 == sha1_hexdigest(modpack_path):
+            prev_index_package = (
+                prev_manifest.packages.get(package.id) if prev_manifest else None
+            )
+            if prev_index_package and prev_index_package.sha1 == sha1_hexdigest(
+                modpack_path
+            ):
                 index_package = prev_index_package
             else:
                 package.version = next_version
@@ -234,7 +250,7 @@ class SUpdate:
                 index_package = IndexPackage.from_package(
                     package=package,
                     modpack_path=modpack_path,
-                    package_url=urljoin(self.packages_url, f'{package_path.name}/'),
+                    package_url=urljoin(self.packages_url, f"{package_path.name}/"),
                 )
 
             manifest.packages[package.id] = index_package
@@ -252,7 +268,7 @@ class SUpdate:
                 launcher=Launcher(
                     version="0.0.0",
                     url="https://example.com/",
-                )
+                ),
             )
 
     @classmethod
@@ -279,7 +295,7 @@ class SUpdate:
                 version = found.pop()
 
         if version:
-            assert version.count('-') == 1, version
+            assert version.count("-") == 1, version
             return version
         else:
             return None
@@ -289,10 +305,10 @@ class SUpdate:
         with settings_cfg_path.open() as fp:
             for line in fp:
                 line = line.strip()
-                if line.startswith(';'):
+                if line.startswith(";"):
                     continue
 
-                line = line.rstrip(';')
+                line = line.rstrip(";")
                 key, sep, value = line.partition("=")
                 if not sep:
                     continue
@@ -307,60 +323,68 @@ class SUpdate:
         if prev_version is None:
             major, minor = dt, 0
         else:
-            major, sep, minor = prev_version.partition('.')
+            major, sep, minor = prev_version.partition(".")
             if major != dt:
                 major, minor = dt, 0
             else:
-                major, minor = dt, int(minor or '-1') + 1
+                major, minor = dt, int(minor or "-1") + 1
 
-        return f'{major}.{minor}'
+        return f"{major}.{minor}"
 
 
 @click.group()
-@click.option("--instances",
-              metavar="PATH",
-              default="./instances/",
-              help="instances/",
-              type=ClickPath())
-@click.option("--forge",
-              metavar="PATH",
-              default="./forge/",
-              help="forge/",
-              type=ClickPath())
-@click.option("--packages",
-              metavar="PATH",
-              default="./web/packages/",
-              help="web/packages/",
-              type=ClickPath())
-@click.option("--libraries",
-              metavar="PATH",
-              default="./web/libraries/",
-              help="web/libraries/",
-              type=ClickPath())
-@click.option("--packages-url",
-              metavar="URL",
-              default=f"https://packages.{DOMAIN}/",
-              help=f"https://packages.{DOMAIN}/")
-@click.option("--libraries-url",
-              metavar="URL",
-              default=f"https://libraries.{DOMAIN}/",
-              help=f"https://libraries.{DOMAIN}/")
-@click.option("--use-requests-cache/--no-requests-cache",
-              default=True,
-              help="Use requests-cache")
-@click.option("--use-cwd/--no-cwd",
-              default=False,
-              help="False; Use cwd when enabled")
+@click.option(
+    "--instances",
+    metavar="PATH",
+    default="./instances/",
+    help="instances/",
+    type=ClickPath(),
+)
+@click.option(
+    "--forge", metavar="PATH", default="./forge/", help="forge/", type=ClickPath()
+)
+@click.option(
+    "--packages",
+    metavar="PATH",
+    default="./web/packages/",
+    help="web/packages/",
+    type=ClickPath(),
+)
+@click.option(
+    "--libraries",
+    metavar="PATH",
+    default="./web/libraries/",
+    help="web/libraries/",
+    type=ClickPath(),
+)
+@click.option(
+    "--packages-url",
+    metavar="URL",
+    default=f"https://packages.{DOMAIN}/",
+    help=f"https://packages.{DOMAIN}/",
+)
+@click.option(
+    "--libraries-url",
+    metavar="URL",
+    default=f"https://libraries.{DOMAIN}/",
+    help=f"https://libraries.{DOMAIN}/",
+)
+@click.option(
+    "--use-requests-cache/--no-requests-cache", default=True, help="Use requests-cache"
+)
+@click.option("--use-cwd/--no-cwd", default=False, help="False; Use cwd when enabled")
 @click.pass_context
-def cli(ctx: Context,
-        instances: Path,
-        forge: Path,
-        packages: Path,
-        libraries: Path,
-        libraries_url: str,
-        packages_url: str,
-        use_requests_cache: bool,
-        use_cwd: bool):
+def cli(
+    ctx: Context,
+    instances: Path,
+    forge: Path,
+    packages: Path,
+    libraries: Path,
+    libraries_url: str,
+    packages_url: str,
+    use_requests_cache: bool,
+    use_cwd: bool,
+):
     if not use_cwd:
         file = Path(__file__)
         if file.suffix == ".pyc":
@@ -403,7 +427,12 @@ def cli_forge(supdate: SUpdate, version: str):
 @click.option("--forge-version")
 @click.option("--force-update-forge/--no-update-forge", default=None)
 @click.pass_obj
-def cli_package(supdate: SUpdate, name: str, forge_version: Optional[str], force_update_forge: Optional[bool]):
+def cli_package(
+    supdate: SUpdate,
+    name: str,
+    forge_version: Optional[str],
+    force_update_forge: Optional[bool],
+):
     print(supdate.cmd_package(name, forge_version, force_update_forge))
 
 
@@ -413,7 +442,7 @@ def cli_update(supdate: SUpdate):
     print(supdate.cmd_update())
 
 
-@cli.command("build-pyz", hidden=not __file__.endswith('.py'))
+@cli.command("build-pyz", hidden=not __file__.endswith(".py"))
 def cli_build_pyz():
     this = Path(__file__)
     if this.suffix != ".py":

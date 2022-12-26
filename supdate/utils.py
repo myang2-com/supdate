@@ -8,28 +8,38 @@ from zipfile import ZipFile
 
 class VersionRange:
     def __init__(self, vrange: str):
-        versions: List[str] = list(map(lambda v: v.strip(), vrange.split(',')))
+        versions: List[str] = list(map(lambda v: v.strip(), vrange.split(",")))
         if len(versions) != 2:
             raise ValueError(f"{vrange} is not a valid version range.")
-        elif all((
-                versions[0][0] == '[' or versions[0][0] == '(',
-                versions[1][-1] == ']' or versions[1][-1] == ')'
-        )):
-            if len(versions[0][1:]) == 0 or versions[0] == '*':
+        elif all(
+            (
+                versions[0][0] == "[" or versions[0][0] == "(",
+                versions[1][-1] == "]" or versions[1][-1] == ")",
+            )
+        ):
+            if len(versions[0][1:]) == 0 or versions[0] == "*":
                 self.__left = None
             else:
                 self.__left = LooseVersion(versions[0][1:])
 
-            if len(versions[1][:-1]) == 0 or versions[1] == '*':
+            if len(versions[1][:-1]) == 0 or versions[1] == "*":
                 self.__right = None
             else:
                 self.__right = LooseVersion(versions[1][:-1])
 
-            self.__lopen = versions[0][0] == '('
-            self.__ropen = versions[1][-1] == ')'
-            self.__empty = all((self.__left is None, self.__right is None, (self.__lopen or self.__ropen)))
+            self.__lopen = versions[0][0] == "("
+            self.__ropen = versions[1][-1] == ")"
+            self.__empty = all(
+                (
+                    self.__left is None,
+                    self.__right is None,
+                    (self.__lopen or self.__ropen),
+                )
+            )
         else:
-            raise ValueError("The range must be given by the form of mathematical intervals.")
+            raise ValueError(
+                "The range must be given by the form of mathematical intervals."
+            )
 
     @property
     def left(self):
@@ -76,12 +86,14 @@ def load_json_from_jar(jar: Path, filename: str) -> dict:
             raise FileNotFoundError(f"{filename} does not exist in {jar.absolute()}!")
 
         with fp:
-            content = fp.read().decode('utf-8')
+            content = fp.read().decode("utf-8")
             return json.loads(content)
+
 
 def is_file_in_jar(jar: Path, filename: str) -> bool:
     with ZipFile(jar) as zf:
         return filename in zf.namelist()
+
 
 def sha1_hexdigest(file: Path):
     if not file.exists():

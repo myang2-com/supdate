@@ -29,7 +29,7 @@ class Namespace(MutableMapping):
         }
 
         for key, value in self.__dict__.items():
-            if key.startswith('_'):
+            if key.startswith("_"):
                 continue
 
             default = defaults.get(key, MISSING)
@@ -76,7 +76,7 @@ class Namespace(MutableMapping):
             if is_dataclass(tp) and issubclass(tp, Namespace):
                 value = tp.from_json(value)
             elif origin in (list, List):
-                tp, = get_args(tp)
+                (tp,) = get_args(tp)
                 if is_dataclass(tp) and issubclass(tp, Namespace):
                     assert isinstance(value, list)
                     value = [tp.from_json(item) for item in value]
@@ -87,7 +87,7 @@ class Namespace(MutableMapping):
                     assert isinstance(value, dict)
                     value = {key: tv.from_json(value) for key, value in value.items()}
             # Forced to cast a type because of wrong floats
-            if field.type == 'int':
+            if field.type == "int":
                 value = int(value)
 
             values[field.name] = value
@@ -124,11 +124,11 @@ class Namespace(MutableMapping):
     def write_to_path(self, path: Path):
         obj = self.to_json()
         s = json.dumps(obj, indent=4, sort_keys=False)
-        path.write_text(s, encoding='utf-8')
+        path.write_text(s, encoding="utf-8")
 
     @classmethod
     def read_from_path(cls, path: Path):
-        s = path.read_text(encoding='utf-8')
+        s = path.read_text(encoding="utf-8")
         obj = json.loads(s)
         return cls.from_json(obj)
 

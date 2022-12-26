@@ -5,8 +5,14 @@ from typing import Optional
 from urllib.parse import ParseResult, urljoin, urlparse
 
 from .forge import ForgeBase
-from .profile import InstallProfile, Library, LibraryArtifactDownload, \
-    LibraryDependency, LibraryDownloads, Profile
+from .profile import (
+    InstallProfile,
+    Library,
+    LibraryArtifactDownload,
+    LibraryDependency,
+    LibraryDownloads,
+    Profile,
+)
 from .utils import sha1_hexdigest
 
 
@@ -43,7 +49,9 @@ class LibrariesBuilder:
         else:
             return False
 
-    def update_from_install_profile(self, install_profile: Optional[InstallProfile], url: str):
+    def update_from_install_profile(
+        self, install_profile: Optional[InstallProfile], url: str
+    ):
         if install_profile is None or install_profile.data is None:
             return
         elif "MCP_VERSION" not in install_profile.data:
@@ -51,17 +59,17 @@ class LibrariesBuilder:
 
         # get vanilla/mcp version
         mc_vanilla_version = self.forge_base.vanilla_version
-        mcp_client_version = install_profile.data["MCP_VERSION"]["client"].strip("\'\"")
+        mcp_client_version = install_profile.data["MCP_VERSION"]["client"].strip("'\"")
         version = f"{mc_vanilla_version}-{mcp_client_version}"
 
         libraries_folder = self.folder / "libraries"
 
         # check corresponding version of (extra, silm, srg) jar file exists
         # check forge 1.13+ libraries/net/minecraft/client for more informations
-        for tag in 'extra', 'slim', 'srg':
+        for tag in "extra", "slim", "srg":
             dependency = LibraryDependency(
-                group='net.minecraft',
-                artifact='client',
+                group="net.minecraft",
+                artifact="client",
                 version=version,
                 tag=tag,
             )
@@ -106,7 +114,9 @@ class LibrariesBuilder:
                         download = self.build_artifact_download(sfile, spath, url)
 
                         if copy:
-                            self.copy_library_file(sfile, spath, target_libraries_folder)
+                            self.copy_library_file(
+                                sfile, spath, target_libraries_folder
+                            )
 
                         new_library = Library(
                             name=f"{library.name}-{tag}",
@@ -132,7 +142,7 @@ class LibrariesBuilder:
             size=file.stat().st_size,
             sha1=sha1_hexdigest(file),
             path=path.as_posix(),
-            url=urljoin(url, path.as_posix())
+            url=urljoin(url, path.as_posix()),
         )
 
     def copy_library_file(self, file: Path, path: Path, target_libraries_folder: Path):

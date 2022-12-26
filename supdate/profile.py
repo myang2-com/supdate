@@ -42,8 +42,12 @@ class Profile(Namespace):
     def merge(self, other: Profile):
         for key, value in other.items():
             if key == "libraries":
-                self[key] = list({library.name: library
-                                  for library in chain(other.libraries, self.libraries)}.values())
+                self[key] = list(
+                    {
+                        library.name: library
+                        for library in chain(other.libraries, self.libraries)
+                    }.values()
+                )
             elif key == "arguments":
                 self.arguments["game"].extend(value["game"])
             elif key == "minecraftArguments":
@@ -71,12 +75,14 @@ class LibraryDependency(NamedTuple):
 
     def as_path(self) -> Path:
         return Path(
-            posixpath.sep.join([
-                self.group.replace('.', '/'),
-                self.artifact,
-                self.version,
-                f"{'-'.join(filter(None, self[1:]))}.jar"
-            ])
+            posixpath.sep.join(
+                [
+                    self.group.replace(".", "/"),
+                    self.artifact,
+                    self.version,
+                    f"{'-'.join(filter(None, self[1:]))}.jar",
+                ]
+            )
         )
 
     def replace(self, **kwargs) -> LibraryDependency:

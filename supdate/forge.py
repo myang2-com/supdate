@@ -38,8 +38,9 @@ class ForgeBase:
 
     @property
     def _basic_name(self):
-        return self.form.replace("{mc}", self.mc_version)       \
-                        .replace("{forge}", self.forge_version)
+        return self.form.replace("{mc}", self.mc_version).replace(
+            "{forge}", self.forge_version
+        )
 
     @property
     def standard_name(self):
@@ -59,7 +60,9 @@ class ForgeBase:
         if std_file.exists():
             return std_file
 
-        univ_file = self.directory / f"{self._basic_name}.jar".replace("(-{type})", f"-{ForgeType.UNIVERSAL.value}")
+        univ_file = self.directory / f"{self._basic_name}.jar".replace(
+            "(-{type})", f"-{ForgeType.UNIVERSAL.value}"
+        )
         if univ_file.exists():
             return univ_file
 
@@ -82,9 +85,7 @@ class ForgeBase:
     @property
     def full_profile(self) -> Profile:
         fp = self.forge_profile
-        assert fp.inheritsFrom == self.mc_version, (
-            fp.inheritsFrom, self.mc_version
-        )
+        assert fp.inheritsFrom == self.mc_version, (fp.inheritsFrom, self.mc_version)
 
         profile = self.vanilla_profile
         profile.merge(fp)
@@ -121,7 +122,7 @@ class ForgeInstaller(ForgeBase):
         res = requests.get(self.url, stream=True)
         res.raise_for_status()
 
-        with self.jar.open('wb') as fp:
+        with self.jar.open("wb") as fp:
             for chunk in res:
                 fp.write(chunk)
 
@@ -129,4 +130,7 @@ class ForgeInstaller(ForgeBase):
         if auto_download and not self.jar.exists():
             self.download_forge()
 
-        subprocess.check_call(["java", "-jar", str(self.jar.absolute()), "--installServer"], cwd=str(self.directory))
+        subprocess.check_call(
+            ["java", "-jar", str(self.jar.absolute()), "--installServer"],
+            cwd=str(self.directory),
+        )

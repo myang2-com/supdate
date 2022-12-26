@@ -51,7 +51,13 @@ class Package(Profile):
 
 
 class PackageBuilder:
-    def __init__(self, package: Package, instance_folder: Path, package_folder: Path, package_url: str):
+    def __init__(
+        self,
+        package: Package,
+        instance_folder: Path,
+        package_folder: Path,
+        package_url: str,
+    ):
         self.package = package
         self.instance_folder = instance_folder
         self.package_folder = package_folder
@@ -84,9 +90,11 @@ class PackageBuilder:
                 shutil.copyfile(str(file), str(target_file))
 
             file_stat = file.stat()
-            self.package.files.append(PackageFile(
-                size=file_stat.st_size,
-                sha1=sha1_hexdigest(file),
-                path=path.as_posix(),
-                url=urljoin(self.package_url, quote(path.as_posix(), safe="/+'"))
-            ))
+            self.package.files.append(
+                PackageFile(
+                    size=file_stat.st_size,
+                    sha1=sha1_hexdigest(file),
+                    path=path.as_posix(),
+                    url=urljoin(self.package_url, quote(path.as_posix(), safe="/+'")),
+                )
+            )
