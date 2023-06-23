@@ -61,9 +61,9 @@ class ForgeBase:
     mc_version: str
     forge_version: str
     directory: Path
+    form: Form
 
     type: ForgeType
-    form: Form
 
     def get_fullname_with(self, _type: ForgeType):
         return self.form.full.replace(
