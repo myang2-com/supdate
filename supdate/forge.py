@@ -1,24 +1,39 @@
 import subprocess
 import attr
 import requests
-import re
 
 from enum import Enum
 from pathlib import Path
 from typing import Optional
 from distutils.version import LooseVersion
+from collections import namedtuple
 
 from .profile import Profile, InstallProfile
-from .utils import is_file_in_jar, load_json_from_jar as in_jar
+from .utils import is_file_in_jar, load_json_from_jar as in_jar, VersionRange
 from .vanilla import fetch_vanilla_profile
 
 
 VERSION_JSON = "version.json"
 INSTALL_JSON = "install_profile.json"
 
-FORGE_MAVEN = "files.minecraftforge.net/maven"
+FORGE_MAVEN = "maven.minecraftforge.net"
 FORGE_URI = "net/minecraftforge/forge"
 
+# (standard name, full name)
+# The former is used in Forge Maven URL path, and the latter is the name of a forge file.
+Form = namedtuple('Form', ['standard', 'full'])
+
+DEFAULT_VERSION_FORM = Form("forge-{mc}-{forge}", full="forge-{mc}-{forge}-{type}")
+SPECIFIC_VERSION_FORMS = {
+    "[1.7, 1.7.10]": Form("forge-{mc}-{forge}-{mc}", full="forge-{mc}-{forge}-{mc}-{type}"),
+    "[1.19, 1.19.4]": Form("{mc}-{forge}", full=DEFAULT_VERSION_FORM.full)
+}
+def get_version_form(v: str):
+    for version_range, form in SPECIFIC_VERSION_FORMS.items():
+        if v in VersionRange(version_range):
+            return form
+
+    return DEFAULT_VERSION_FORM
 
 class ForgeType(Enum):
     INSTALLER = "installer"
@@ -30,26 +45,29 @@ class ForgeBase:
     mc_version: str
     forge_version: str
     directory: Path
-
-    form: str
     type: ForgeType
+
+    @property
+    def form(self):
+        return get_version_form(self.mc_version)
 
     @property
     def vanilla_version(self):
         return self.mc_version
 
     @property
-    def _basic_name(self):
-        return self.form.replace("{mc}", self.mc_version)       \
-                        .replace("{forge}", self.forge_version)
-
-    @property
     def standard_name(self):
-        return self._basic_name.replace("(-{type})", "")
+        return self.form.standard.replace("{mc}", self.mc_version)       \
+                                 .replace("{forge}", self.forge_version)
+
+    def get_fullname_with(self, _type: ForgeType):
+        return self.form.full.replace("{mc}", self.mc_version) \
+                             .replace("{forge}", self.forge_version) \
+                             .replace("{type}", _type.value)
 
     @property
     def full_name(self):
-        return self._basic_name.replace("(-{type})", f"-{self.type.value}")
+        return self.get_fullname_with(self.type)
 
     @property
     def jar(self) -> Path:
@@ -61,7 +79,7 @@ class ForgeBase:
         if std_file.exists():
             return std_file
 
-        univ_file = self.directory / f"{self._basic_name}.jar".replace("(-{type})", f"-{ForgeType.UNIVERSAL.value}")
+        univ_file = self.directory / f"{self.get_fullname_with(ForgeType.UNIVERSAL)}.jar"
         if univ_file.exists():
             return univ_file
 

@@ -11,7 +11,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Tuple, List, Union
 from urllib.parse import urljoin
-from distutils.version import LooseVersion
 
 import click
 import requests_cache
@@ -22,21 +21,9 @@ from .index import IndexPackageManifest, Launcher, IndexPackage
 from .libraries import LibrariesBuilder
 from .package import Package, PackageBuilder
 from .profile import Profile
-from .utils import sha1_hexdigest, VersionRange
+from .utils import sha1_hexdigest
 
 DOMAIN = "myang2.com"
-
-VERSION_FORMS = {
-    "[1.7, 1.7.10]": "forge-{mc}-{forge}-{mc}(-{type})",
-}
-DEFAULT_VERSION_FORM = "forge-{mc}-{forge}(-{type})"
-def get_version_form(v: str):
-    for version_range, form in VERSION_FORMS.items():
-        if v in VersionRange(version_range):
-            return form
-
-    return DEFAULT_VERSION_FORM
-
 
 class ClickPath(click.Path):
     def coerce_path_result(self, rv):
@@ -83,8 +70,7 @@ class SUpdate:
     ) -> Path:
         vanilla_version, forge_version, forge_path, forge_profile_path = self.prepare_forge(version, forge_path)
 
-        form = get_version_form(vanilla_version)
-        forge_installer = ForgeInstaller(vanilla_version, forge_version, forge_path, form)
+        forge_installer = ForgeInstaller(vanilla_version, forge_version, forge_path)
         forge_installer.install()
 
         forge_profile = forge_installer.full_profile
