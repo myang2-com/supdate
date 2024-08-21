@@ -1,5 +1,4 @@
 from pathlib import Path
-from pathlib import Path
 from typing import Optional
 from urllib.parse import urljoin
 

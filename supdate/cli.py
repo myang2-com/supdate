@@ -7,12 +7,13 @@ import zipapp
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from urllib.parse import urljoin
 
 import click
 import requests_cache
-from click import Context, Group as Cli
+from click import Context
+from click import Group as Cli
 
 from .index import IndexPackage, IndexPackageManifest, Launcher
 from .package import Package, PackageBuilder

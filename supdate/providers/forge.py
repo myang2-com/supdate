@@ -11,7 +11,6 @@ from urllib.parse import ParseResult, urljoin, urlparse
 
 import requests
 
-from .base import Provider
 from ..profile import (
     InstallProfile,
     Library,
@@ -20,10 +19,11 @@ from ..profile import (
     LibraryDownloads,
     Profile,
 )
-from ..utils import is_file_in_jar, load_json_from_jar as in_jar
-from ..utils import sha1_hexdigest
+from ..utils import is_file_in_jar, sha1_hexdigest
+from ..utils import load_json_from_jar as in_jar
 from ..vanilla import fetch_vanilla_profile
 from ..versions import VersionRange
+from .base import Provider
 
 VERSION_JSON = "version.json"
 INSTALL_JSON = "install_profile.json"

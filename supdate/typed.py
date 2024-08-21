@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import MutableMapping
-from dataclasses import Field, MISSING, dataclass, fields, is_dataclass
+from dataclasses import MISSING, Field, dataclass, fields, is_dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Type, Union, get_type_hints
 
