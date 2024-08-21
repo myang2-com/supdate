@@ -31,12 +31,14 @@ INSTALL_JSON = "install_profile.json"
 FORGE_MAVEN = "maven.minecraftforge.net"
 FORGE_URI = "net/minecraftforge/forge"
 
+
 # (standard name, full name)
 # The former is used in Forge Maven URL path, and the latter is the name of a forge file.
 @dataclass
 class Form:
     standard: str
     full: str
+
 
 class ForgeType(Enum):
     INSTALLER = "installer"
@@ -45,9 +47,13 @@ class ForgeType(Enum):
 
 DEFAULT_VERSION_FORM = Form("forge-{mc}-{forge}", full="forge-{mc}-{forge}-{type}")
 SPECIFIC_VERSION_FORMS = {
-    "[1.7, 1.7.10]": Form("forge-{mc}-{forge}-{mc}", full="forge-{mc}-{forge}-{mc}-{type}"),
-    "[1.19, 1.19.4]": Form("{mc}-{forge}", full=DEFAULT_VERSION_FORM.full)
+    "[1.7, 1.7.10]": Form(
+        "forge-{mc}-{forge}-{mc}", full="forge-{mc}-{forge}-{mc}-{type}"
+    ),
+    "[1.19, 1.19.4]": Form("{mc}-{forge}", full=DEFAULT_VERSION_FORM.full),
 }
+
+
 def get_forge_version_form(v: str) -> Form:
     for version_range, form in SPECIFIC_VERSION_FORMS.items():
         if v in VersionRange(version_range):
@@ -66,12 +72,10 @@ class ForgeBase:
     type: ForgeType
 
     def get_fullname_with(self, _type: ForgeType):
-        return self.form.full.replace(
-            "{mc}", self.mc_version
-        ).replace(
-            "{forge}", self.forge_version
-        ).replace(
-            "{type}", _type.value
+        return (
+            self.form.full.replace("{mc}", self.mc_version)
+            .replace("{forge}", self.forge_version)
+            .replace("{type}", _type.value)
         )
 
     @property
@@ -80,9 +84,7 @@ class ForgeBase:
 
     @property
     def standard_name(self):
-        return self.form.standard.replace(
-            "{mc}", self.mc_version
-        ).replace(
+        return self.form.standard.replace("{mc}", self.mc_version).replace(
             "{forge}", self.forge_version
         )
 
@@ -100,7 +102,9 @@ class ForgeBase:
         if std_file.exists():
             return std_file
 
-        univ_file = self.directory / f"{self.get_fullname_with(ForgeType.UNIVERSAL)}.jar"
+        univ_file = (
+            self.directory / f"{self.get_fullname_with(ForgeType.UNIVERSAL)}.jar"
+        )
         if univ_file.exists():
             return univ_file
 
