@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "supdate"
+version = "0.1.0"
+description = ""
+authors = ["myang2 <myang2@myang2.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+typing-inspect = "^0.9.0"
+requests = "^2.32.3"
+requests-cache = "^1.2.1"
+click = "^8.1.7"
+pydantic = "^2.8.2"
+devtools = "^0.12.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
