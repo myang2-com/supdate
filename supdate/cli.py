@@ -357,7 +357,7 @@ def cli_build_pyz():
     zipapp.create_archive(
         target_folder,
         pyz_path,
-        "/usr/bin/env python3.9",
+        "/usr/bin/env python3.11",
         filter=filter_func,
     )
 
