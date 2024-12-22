@@ -201,6 +201,11 @@ def find_forge_version_in_path(path: Path) -> Optional[str]:
             version = found.pop()
 
     if version:
+        if version.count("-") == 2:
+            a, b, c = version.split("-")
+            assert a == c, version
+            version = f"{a}-{b}"
+
         assert version.count("-") == 1, version
         return version
     else:
