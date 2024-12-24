@@ -13,6 +13,7 @@ from .typed import Namespace
 class InstallProfile(Namespace):
     version: str = None
     data: dict = None
+    libraries: List[Library] = field(default_factory=list)
 
 
 @dataclass(repr=False)
@@ -50,6 +51,7 @@ class Profile(Namespace):
                 )
             elif key == "arguments":
                 self.arguments["game"].extend(value["game"])
+                self.arguments["jvm"].extend(value["jvm"])
             elif key == "minecraftArguments":
                 # check for minecraftArguments is builded by arguments["game"]
                 if self.arguments is not None:
@@ -72,6 +74,7 @@ class LibraryDependency(NamedTuple):
     artifact: str
     version: str
     tag: str = None
+    suffix = ".jar"  # type: str
 
     def as_path(self) -> Path:
         return Path(
@@ -80,13 +83,17 @@ class LibraryDependency(NamedTuple):
                     self.group.replace(".", "/"),
                     self.artifact,
                     self.version,
-                    f"{'-'.join(filter(None, self[1:]))}.jar",
+                    f"{'-'.join(filter(None, self[1:]))}{self.suffix}",
                 ]
             )
         )
 
     def replace(self, **kwargs) -> LibraryDependency:
         return self._replace(**kwargs)
+
+
+class LibraryTextDependency(LibraryDependency):
+    suffix = ".txt"
 
 
 @dataclass(repr=False)
@@ -97,19 +104,24 @@ class Library(Namespace):
     serverreq: Optional[bool] = None
     clientreq: Optional[bool] = None
     downloads: Optional[LibraryDownloads] = None
+    rules: Optional[List[Any]] = None
 
     # private (do not serialize this field)
     _dependency: LibraryDependency = None
 
     def __post_init__(self):
         if self._dependency is None:
-            assert self.name.count(":") in (2, 3), self.name
-            if self.name.count(":") == 2:
-                group, artifact, version = self.name.split(":")
-            elif self.name.count(":") == 3:
-                group, artifact, version, tag = self.name.split(":")
+            match self.name.count(":"):
+                case 2:
+                    group, artifact, version = self.name.split(":")
+                    dependency = LibraryDependency(group, artifact, version)
+                case 3:
+                    group, artifact, version, tag = self.name.split(":")
+                    dependency = LibraryDependency(group, artifact, version, tag)
+                case _:
+                    raise ValueError(f"Invalid library name: {self.name}")
 
-            self._dependency = LibraryDependency(group, artifact, version)
+            self._dependency = dependency
 
     @property
     def group(self) -> str:
@@ -122,6 +134,10 @@ class Library(Namespace):
     @property
     def version(self) -> str:
         return self._dependency.version
+
+    @property
+    def tag(self) -> str:
+        return self._dependency.tag
 
     @property
     def path(self) -> Path:

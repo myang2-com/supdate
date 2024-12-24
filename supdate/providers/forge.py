@@ -2,6 +2,7 @@ import re
 import shutil
 import subprocess
 import traceback
+from collections import defaultdict
 from dataclasses import dataclass
 from distutils.version import LooseVersion
 from enum import Enum
@@ -17,6 +18,7 @@ from ..profile import (
     LibraryArtifactDownload,
     LibraryDependency,
     LibraryDownloads,
+    LibraryTextDependency,
     Profile,
 )
 from ..utils import is_file_in_jar, sha1_hexdigest
@@ -168,12 +170,15 @@ class ForgeInstaller(ForgeBase):
             for chunk in res:
                 fp.write(chunk)
 
-    def install(self, *, auto_download=True):
+    def install(self, *, auto_download=True, side="server"):
         if auto_download and not self.jar.exists():
             self.download_forge()
 
+        if side == "client":
+            (Path(self.directory) / "launcher_profiles.json").write_text("{}")
+
         subprocess.check_call(
-            ["java", "-jar", str(self.jar.absolute()), "--installServer"],
+            ["java", "-jar", str(self.jar.absolute()), f"--install{side.title()}"],
             cwd=str(self.directory),
         )
 
@@ -283,7 +288,8 @@ class ForgeProvider(Provider):
             directory=self.forge_path,
             form=form,
         )
-        forge_installer.install()
+        forge_installer.install(side="server")
+        forge_installer.install(side="client")
 
         forge_profile = forge_installer.full_profile
         install_profile = forge_installer.install_profile
@@ -341,37 +347,88 @@ class ForgeLibrariesBuilder:
         # get vanilla/mcp version
         mc_vanilla_version = self.forge_base.vanilla_version
         mcp_client_version = install_profile.data["MCP_VERSION"]["client"].strip("'\"")
-        version = f"{mc_vanilla_version}-{mcp_client_version}"
+        forge_mcp_version = f"{mc_vanilla_version}-{mcp_client_version}"
+        forge_short_version = install_profile.version.replace("forge-", "")
 
         libraries_folder = self.folder / "libraries"
 
+        self.profile.libraries.extend(install_profile.libraries)
+
         # check corresponding version of (extra, silm, srg) jar file exists
         # check forge 1.13+ libraries/net/minecraft/client for more informations
-        for tag in "extra", "slim", "srg":
-            dependency = LibraryDependency(
-                group="net.minecraft",
-                artifact="client",
-                version=version,
-                tag=tag,
-            )
+        for group, artifact, tags, selected_version in [
+            ("net.minecraft", "client", ["extra", "slim", "srg"], forge_mcp_version),
+            ("net.minecraftforge", "forge", ["client"], forge_short_version),
+        ]:
+            for tag in tags:
+                dependency = LibraryDependency(
+                    group=group,
+                    artifact=artifact,
+                    version=selected_version,
+                    tag=tag,
+                )
 
-            path = dependency.as_path()
-            file = libraries_folder / path
+                path = dependency.as_path()
+                file = libraries_folder / path
 
-            library = Library(
-                name=":".join(filter(None, dependency)),
-                clientreq=True,
-                downloads=self.build_artifact_download(file, path, url),
-                _dependency=dependency,
-            )
+                library = Library(
+                    name=":".join(filter(None, dependency)),
+                    clientreq=True,
+                    downloads=self.build_artifact_download(file, path, url),
+                    _dependency=dependency,
+                )
 
-            if not file.exists():
-                raise Exception(f"file is missing: {file}")
+                if not file.exists():
+                    raise Exception(f"file is missing: {file}")
 
-            self.profile.libraries.append(library)
+                self.profile.libraries.append(library)
+
+        for group, artifact, tags in [
+            ("de.oceanlabs.mcp", "mcp_config", ["mappings", "mappings-merged"]),
+            ("net.minecraft", "client", ["mappings"]),
+        ]:
+            for tag in tags:
+                dependency = LibraryTextDependency(
+                    group=group,
+                    artifact=artifact,
+                    version=forge_mcp_version,
+                    tag=tag,
+                )
+
+                path = dependency.as_path()
+                file = libraries_folder / path
+
+                assert file.exists(), file
+
+                library = Library(
+                    name=":".join(filter(None, dependency)),
+                    clientreq=True,
+                    downloads=self.build_artifact_download(file, path, url),
+                    _dependency=dependency,
+                )
+
+                if not file.exists():
+                    raise Exception(f"file is missing: {file}")
+
+                self.profile.libraries.append(library)
+
+    def normalize(self):
+        libraries_by_uid = defaultdict(list)
+        for library in self.profile.libraries:
+            libraries_by_uid[library.group, library.artifact, library.tag].append((LooseVersion(library.version), library))
+
+        selected_libraries = []
+        for (group, artifact, tag), versions in libraries_by_uid.items():
+            if (group, artifact, tag) == ("net.sf.jopt-simple", "jopt-simple", None):
+                selected_libraries += [library for _, library in versions]
+            else:
+                selected_libraries.append(sorted(versions)[-1][1])
+
+        self.profile.libraries[:] = selected_libraries
 
     def build(self, url: str, target_libraries_folder: Path, *, copy: bool):
         self.check_source()
+        self.normalize()
 
         up: ParseResult = urlparse(url)
         if up.scheme not in ("http", "https"):
@@ -385,7 +442,7 @@ class ForgeLibrariesBuilder:
             if library.clientreq or library.serverreq:
                 if library.version < LooseVersion("1.13"):
                     assert not library.downloads
-            elif is_forge_universal(library):
+            elif is_forge_universal(library) and library.version < LooseVersion("1.13"):
                 if self.check_all_forge_jars(file):
                     for tag in "universal", "client":
                         sfile = file.with_stem(f"{file.stem}-{tag}")
